@@ -2,12 +2,15 @@
 
 import HistoryModal from "@/components/HistoryModal";
 import Navbar from "@/components/Navbar";
-import PromptInput from "@/components/PromptInput";
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
+import { useRouter } from "next/navigation";
+import BackgroundGrid from "@/components/BackgroundGrid";
+import PromptInput from "@/components/PromptInput";
 
 export default function Home() {
   const [historyModal, setHistoryModal] = useState<boolean>(false);
+  const router = useRouter();
 
   // Menangani penekanan tombol Escape untuk menutup modal
   useEffect(() => {
@@ -28,7 +31,8 @@ export default function Home() {
         setHistoryModal={() => setHistoryModal(!historyModal)}
       />
       <main className="flex min-h-screen flex-col items-center justify-center px-4">
-        <div className="w-full max-w-4xl mx-auto">
+        <BackgroundGrid />
+        <div className="w-full max-w-4xl mx-auto flex flex-col items-center">
           <header className="text-center mb-6">
             <h1 className="text-3xl md:text-4xl lg:text-5xl font-bold mb-4">
               Halo, Semangat Pagi John Doe!
@@ -40,6 +44,7 @@ export default function Home() {
             </p>
           </header>
 
+          {/* <PromptInput /> */}
           <PromptInput />
         </div>
 

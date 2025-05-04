@@ -1,5 +1,5 @@
-import React, { useState } from "react";
-import { ArrowBigUpDash, Loader2 } from "lucide-react";
+import React, { useState, useEffect } from "react";
+import { ArrowBigUpDash, Loader2, Router } from "lucide-react";
 import {
   Select,
   SelectContent,
@@ -12,11 +12,16 @@ import {
 import { FaGoogle } from "react-icons/fa";
 import { RiOpenaiFill } from "react-icons/ri";
 import { FacebookIcon } from "lucide-react";
+import { useRouter } from "next/navigation";
 
 export default function PromptInput() {
   const [prompt, setPrompt] = useState("");
+  const [conversation, setConversation] = useState<
+    { role: string; content: string }[]
+  >([]);
   const [model, setModel] = useState("gpt-4o");
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const router = useRouter();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -26,18 +31,24 @@ export default function PromptInput() {
     // Simulasi pengiriman prompt
     setIsSubmitting(true);
 
-    // Di sini Anda akan menambahkan logika untuk mengirim prompt ke AI
-    console.log(`Sending prompt: "${prompt}" to model: ${model}`);
+    try {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/chat`);
+      const data = await response.json();
 
-    // Simulasi respons dari server
-    setTimeout(() => {
+      if (data.session_id) {
+        router.push(`/chat/${data.session_id}`);
+      }
+
+      setConversation([...conversation, { role: "user", content: prompt }]);
+    } catch (error) {
+      console.error("Error creating chat session:", error);
+    } finally {
       setIsSubmitting(false);
-      setPrompt("");
-    }, 1500);
+    }
   };
 
   return (
-    <div className="w-full max-w-2xl mx-auto mt-3">
+    <div className="w-full max-w-2xl mx-auto mt-3 bg-white shadow">
       <form onSubmit={handleSubmit} className="space-y-2">
         <fieldset className="flex flex-col border border-input rounded-lg focus-within:ring-1 focus-within:ring-ring focus-within:border-ring transition-all duration-200">
           <textarea
@@ -86,7 +97,7 @@ export default function PromptInput() {
             <button
               type="submit"
               disabled={!prompt.trim() || isSubmitting}
-              className="bg-primary hover:bg-primary/90 text-primary-foreground p-2 rounded-md w-10 h-10 flex items-center justify-center transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+              className="bg-primary hover:bg-primary/90 text-primary-foreground p-2 rounded-md w-10 h-10 flex items-center justify-center transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed hover:cursor-pointer"
             >
               {isSubmitting ? (
                 <Loader2 className="h-5 w-5 animate-spin" />

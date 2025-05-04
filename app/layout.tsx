@@ -14,7 +14,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "AI Assistant Platform",
+  title: "BEJO AI",
   description:
     "Platform asisten AI yang membantu Anda mendapatkan jawaban cepat dan akurat",
 };

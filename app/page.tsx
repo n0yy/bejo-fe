@@ -4,13 +4,11 @@ import HistoryModal from "@/components/HistoryModal";
 import Navbar from "@/components/Navbar";
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { useRouter } from "next/navigation";
 import BackgroundGrid from "@/components/BackgroundGrid";
 import PromptInput from "@/components/PromptInput";
 
 export default function Home() {
   const [historyModal, setHistoryModal] = useState<boolean>(false);
-  const router = useRouter();
 
   // Menangani penekanan tombol Escape untuk menutup modal
   useEffect(() => {

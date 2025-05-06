@@ -33,7 +33,7 @@ export default function Navbar({
   const { theme, setTheme } = useTheme();
 
   return (
-    <nav className="py-5 px-4 md:px-10 flex items-center justify-between fixed top-0 left-0 right-0 z-10 bg-background/80 backdrop-blur-md">
+    <nav className="py-5 px-4 md:px-10 flex items-center justify-between fixed top-0 left-0 right-0 z-10 bg-white/10 dark:bg-black/10  backdrop-blur-sm">
       <div>
         <Image
           src="/logo.png"

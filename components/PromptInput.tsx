@@ -16,46 +16,34 @@ import { useRouter } from "next/navigation";
 
 export default function PromptInput() {
   const [prompt, setPrompt] = useState("");
-  const [conversation, setConversation] = useState<
-    { role: string; content: string }[]
-  >([]);
   const [model, setModel] = useState("gpt-4o");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const router = useRouter();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-
-    if (!prompt.trim()) return;
-
-    // Simulasi pengiriman prompt
     setIsSubmitting(true);
-
-    try {
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/chat`);
-      const data = await response.json();
-
-      if (data.session_id) {
-        router.push(`/chat/${data.session_id}`);
-      }
-
-      setConversation([...conversation, { role: "user", content: prompt }]);
-    } catch (error) {
-      console.error("Error creating chat session:", error);
-    } finally {
-      setIsSubmitting(false);
+    const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/chat`);
+    const { session_id } = await response.json();
+    if (session_id) {
+      localStorage.setItem("startChat", prompt);
+      router.push(`chat/${session_id}`);
+    } else {
+      return <div>Somethine went wrong in the session</div>;
     }
   };
 
+  useEffect(() => {}, []);
+
   return (
-    <div className="w-full max-w-2xl mx-auto mt-3 bg-white shadow">
+    <div className="w-full max-w-4xl mx-auto mt-3 bg-transparent ">
       <form onSubmit={handleSubmit} className="space-y-2">
-        <fieldset className="flex flex-col border border-input rounded-lg focus-within:ring-1 focus-within:ring-ring focus-within:border-ring transition-all duration-200">
+        <fieldset className="flex flex-col border border-input rounded-xl shadow focus-within:ring-1 focus-within:ring-ring focus-within:border-ring transition-all duration-200 bg-white dark:invert">
           <textarea
             value={prompt}
             onChange={(e) => setPrompt(e.target.value)}
             placeholder="Tanyakan apapun di sini..."
-            className="min-h-28 focus:ring-0 focus:outline-none border-0 bg-transparent p-3 resize-none"
+            className="min-h-28 focus:ring-0 focus:outline-none border-0 bg-transparent p-3 resize-none dark:invert"
             disabled={isSubmitting}
           />
 
@@ -86,7 +74,7 @@ export default function PromptInput() {
                     <SelectItem value="llama3.2-70b" className="cursor-pointer">
                       <div className="flex items-center">
                         <FacebookIcon className="mr-2 h-4 w-4" />
-                        <span>Llama 3.2 (70B)</span>
+                        <span className="">Llama 3.2 (70B)</span>
                       </div>
                     </SelectItem>
                   </SelectGroup>

@@ -23,11 +23,17 @@ export default function PromptInput() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSubmitting(true);
-    const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/chat`);
+    const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/ask`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ user_id: "test_12312" }),
+    });
     const { session_id } = await response.json();
     if (session_id) {
       localStorage.setItem("startChat", prompt);
-      router.push(`chat/${session_id}`);
+      router.push(`ask/${session_id}`);
     } else {
       return <div>Somethine went wrong in the session</div>;
     }

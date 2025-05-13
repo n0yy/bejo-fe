@@ -19,28 +19,58 @@ export default function ChatInterface() {
   const [loading, setLoading] = useState(false);
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
+  const [pendingMessage, setPendingMessage] = useState<Message | null>(null);
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
   const getResponse = async (message: string) => {
     setLoading(true);
+
+    // Tambahkan pesan pengguna ke daftar pesan terlebih dahulu
+    const userMessage: Message = {
+      role: "user",
+      content: message,
+      timestamp: new Date().toISOString(),
+    };
+
+    // Tambahkan placeholder pesan assistant yang sedang loading
+    const pendingAssistantMessage: Message = {
+      role: "assistant",
+      content: "",
+      timestamp: new Date().toISOString(),
+    };
+
+    setMessages((prevMessages) => [...prevMessages, userMessage]);
+    setPendingMessage(pendingAssistantMessage);
+
     try {
       const response = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL}/chat/${uuid}`,
+        `${process.env.NEXT_PUBLIC_API_URL}/ask/${uuid}`,
         {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
           },
-          body: JSON.stringify({ message }),
+          body: JSON.stringify({ input: message }),
         }
       );
       const data = await response.json();
-      // Set all conversation
-      setMessages(data.messages);
+
+      // Buat objek pesan baru dari respons API
+      const assistantMessage: Message = {
+        role: "assistant",
+        content: data.answer || "",
+        timestamp: new Date().toISOString(),
+      };
+
+      // Update pesan setelah respons diterima
+      setPendingMessage(null);
+      setMessages((prevMessages) => [...prevMessages, assistantMessage]);
     } catch (error) {
       console.error(error);
+      // Jika error, hapus pesan placeholder assistant
+      setPendingMessage(null);
     } finally {
       setLoading(false);
       setInput("");
@@ -49,13 +79,19 @@ export default function ChatInterface() {
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [messages, pendingMessage]);
+
+  useEffect(() => {
     const initialInput = localStorage.getItem("startChat");
     if (initialInput) {
       getResponse(initialInput);
+      // Hapus item dari localStorage agar tidak dipanggil lagi saat refresh
+      localStorage.removeItem("startChat");
     }
   }, [uuid]);
 
   const handleSend = async (prompt: string) => {
+    if (!prompt.trim() || loading) return;
     getResponse(prompt);
   };
 
@@ -67,10 +103,10 @@ export default function ChatInterface() {
   };
 
   return (
-    <div className="flex flex-col h-screen">
+    <div className="flex flex-col h-screen bg-white dark:invert">
       {/* Chat area */}
-      <div className="flex-1 overflow-y-auto px-4 md:px-0 py-6 w-full flex justify-center dark:invert">
-        <div className="w-full max-w-4xl space-y-4">
+      <div className="flex-1 overflow-y-auto px-4 md:px-0 py-6 w-full flex justify-center">
+        <div className="w-full max-w-4xl space-y-4 pb-10">
           {messages.map((message, index) => (
             <div
               key={index}
@@ -85,14 +121,6 @@ export default function ChatInterface() {
                     : " text-black w-full"
                 }`}
               >
-                {loading && message.role !== "user" && (
-                  <span className="align-middle flex items-center">
-                    <Image src="/bejo.png" width={18} height={18} alt="Bejo" />
-                    <span className="ml-2 animate-pulse block text-slate-300 text-sm">
-                      loading...
-                    </span>
-                  </span>
-                )}
                 {message.role === "assistant" && (
                   <span className="inline-block mr-2 align-middle">
                     <Image src="/bejo.png" width={30} height={30} alt="Bejo" />
@@ -103,7 +131,7 @@ export default function ChatInterface() {
                     {message.content}
                   </Markdown>
                   {message.role === "assistant" && (
-                    <span className="block text-xs mt-3 text-end text-slate-400">
+                    <span className="block text-xs mt-1 text-start text-slate-400">
                       {new Date(message.timestamp).toLocaleString("id-ID", {
                         hour: "2-digit",
                         minute: "2-digit",
@@ -117,6 +145,23 @@ export default function ChatInterface() {
               </div>
             </div>
           ))}
+
+          {/* Pending message (loading) */}
+          {pendingMessage && (
+            <div className="flex justify-start">
+              <div className="px-6 py-3 rounded-xl text-black w-full">
+                <span className="inline-block mr-2 align-middle">
+                  <Image src="/bejo.png" width={30} height={30} alt="Bejo" />
+                </span>
+                <span className="align-middle flex items-center">
+                  <span className="ml-2 animate-pulse block text-slate-300 text-sm">
+                    loading...
+                  </span>
+                </span>
+              </div>
+            </div>
+          )}
+
           <div ref={messagesEndRef} />
         </div>
       </div>

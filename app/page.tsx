@@ -31,15 +31,10 @@ export default function Home() {
       <main className="flex min-h-screen flex-col items-center justify-center px-4">
         <BackgroundGrid />
         <div className="w-full max-w-4xl mx-auto flex flex-col items-center">
-          <header className="text-center mb-6">
-            <h1 className="text-3xl md:text-4xl lg:text-5xl font-bold mb-4">
+          <header className="text-center">
+            <h1 className="text-3xl md:text-4xl lg:text-5xl font-bold mb-3">
               Halo, Semangat Pagi John Doe!
             </h1>
-            <p className="mt-4 text-lg text-muted-foreground max-w-4xl mx-auto">
-              Lorem ipsum dolor sit amet consectetur adipisicing elit.
-              Recusandae tempore eos nisi officia? Assumenda fugiat, eveniet
-              nobis praesentium ipsum rerum.
-            </p>
           </header>
 
           {/* <PromptInput /> */}

@@ -42,7 +42,7 @@ export default function PromptInput() {
   useEffect(() => {}, []);
 
   return (
-    <div className="w-full max-w-4xl mx-auto mt-3 bg-transparent ">
+    <div className="w-full max-w-4xl mx-auto mt-3 bg-transparent shadow-md dark:shadow-yellow-200 rounded-lg">
       <form onSubmit={handleSubmit} className="space-y-2">
         <fieldset className="flex flex-col border border-input rounded-xl shadow focus-within:ring-1 focus-within:ring-ring focus-within:border-ring transition-all duration-200 bg-white dark:invert">
           <textarea
@@ -56,7 +56,7 @@ export default function PromptInput() {
           <div className="flex items-center justify-between p-2 border-t border-input">
             <div className="hover:bg-accent hover:rounded-md transition-all duration-200 px-1">
               <Select value={model} onValueChange={setModel}>
-                <SelectTrigger className="cursor-pointer flex items-center border-0 bg-transparent focus:ring-0 focus:outline-none">
+                <SelectTrigger className="cursor-pointer flex items-center border-0 bg-transparent focus:ring-0 focus:outline-none dark:text-white dark:invert">
                   <SelectValue placeholder="Select model" />
                 </SelectTrigger>
                 <SelectContent>

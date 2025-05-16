@@ -55,8 +55,7 @@ export const DashboardHeader = ({
         </BreadcrumbList>
       </Breadcrumb>
 
-      <div className="flex items-center mt-4">
-        <BarChart3 className="mr-2 h-7 w-7 text-primary" />
+      <div className="flex items-center mt-3">
         <h1 className="font-bold text-3xl md:text-4xl">{title}</h1>
       </div>
     </header>

@@ -37,7 +37,7 @@ const applicationLinks = [
   },
   {
     title: "User",
-    url: "#",
+    url: "/dashboard/users",
     icon: User,
   },
 ];

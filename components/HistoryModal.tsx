@@ -3,7 +3,7 @@ import React from "react";
 
 export default function HistoryModal() {
   return (
-    <div className="absolute z-50 bg-slate-50 min-w-7xl max-h-8/12 p-7 rounded-lg shadow-lg">
+    <div className="absolute z-50 bg-slate-50 min-w-7xl max-h-8/12 p-7 rounded-lg shadow-lg inset-x-0">
       <header className="flex items-center gap-7 mb-7">
         <form className="block w-full">
           <input

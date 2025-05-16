@@ -32,7 +32,7 @@ import Link from "next/link";
 const applicationLinks = [
   {
     title: "Home",
-    url: "#",
+    url: "/dashboard",
     icon: Home,
   },
   {

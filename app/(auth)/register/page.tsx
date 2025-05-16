@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import { z } from "zod";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -21,6 +22,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import Link from "next/link";
+import { Checkbox } from "@/components/ui/checkbox";
 
 // Schema untuk form registrasi
 const registerFormSchema = z.object({
@@ -68,10 +70,14 @@ export default function RegisterPage() {
       username: "",
       email: "",
       name: "",
-      division: undefined as any, // Fix untuk type issue dengan select
+      division: undefined as any,
       password: "",
     },
   });
+
+  const [checked, setChecked] = useState(false);
+
+  const isFormValid = form.formState.isValid && checked;
 
   async function onSubmit(values: RegisterFormValues) {
     // Implementasi logika submit, misalnya API call
@@ -100,9 +106,7 @@ export default function RegisterPage() {
 
   return (
     <>
-      <h1 className="text-4xl font-bold text-center mb-8">
-        Register to Start Q/A with BEJO
-      </h1>
+      <h1 className="text-4xl font-bold text-center mb-8">Register</h1>
 
       <Form {...form}>
         <form
@@ -192,7 +196,26 @@ export default function RegisterPage() {
               </FormItem>
             )}
           />
-          <Button type="submit" className="w-full">
+          <div className="flex items-center space-x-2 mt-10">
+            <Checkbox
+              id="terms"
+              checked={checked}
+              onCheckedChange={(checked) => setChecked(!!checked)}
+            />
+            <label
+              htmlFor="terms"
+              className="text-sm font-medium text-slate-600 leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+            >
+              I make sure all the data is valid
+            </label>
+          </div>
+          <Button
+            type="submit"
+            className={`w-full hover:cursor-pointer ${
+              isFormValid ? "" : "cursor-not-allowed"
+            }`}
+            disabled={!isFormValid}
+          >
             Register
           </Button>
         </form>

@@ -17,7 +17,7 @@ export default function AuthLayout({
 }) {
   return (
     <div className="w-full min-h-screen flex flex-col items-center justify-center px-4">
-      <header className="mb-10 max-w-md flex flex-col items-center">
+      <header className=" max-w-md flex flex-col items-center">
         <Image
           src="/bejo.png"
           width={64}

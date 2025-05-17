@@ -1,7 +1,7 @@
 import NextAuth from "next-auth";
 import type { NextAuthOptions } from "next-auth";
 import CredentialsProvider from "next-auth/providers/credentials";
-import { getUserByEmailOrUsername } from "@/lib/firebase/user";
+import { getUserByEmail } from "@/lib/firebase/user";
 import { compare } from "bcryptjs";
 
 declare module "next-auth" {
@@ -31,27 +31,35 @@ export const authOptions: NextAuthOptions = {
     CredentialsProvider({
       name: "Credentials",
       credentials: {
-        email: { label: "Email", type: "text" },
+        email: { label: "Email", type: "email" },
         password: { label: "Password", type: "password" },
       },
       async authorize(credentials) {
-        if (!credentials?.email || !credentials?.password) return null;
+        try {
+          if (!credentials?.email || !credentials?.password) return null;
 
-        const user = await getUserByEmailOrUsername(credentials.email);
-        if (!user) throw new Error("User not found");
+          const user = await getUserByEmail(credentials.email);
+          if (!user) return null;
+          console.log("Email:", credentials.email);
+          console.log("User from DB:", user);
+          console.log("User status:", user.status);
+          console.log("Comparing password...");
 
-        if (user.status !== "approved")
-          throw new Error("Account not approved by admin");
+          if (user.status !== "approved") return null;
 
-        const isValid = await compare(credentials.password, user.password);
-        if (!isValid) throw new Error("Invalid password");
+          const isValid = await compare(credentials.password, user.password);
+          if (!isValid) return null;
 
-        return {
-          id: user.id,
-          email: user.email,
-          name: user.name,
-          division: user.division,
-        };
+          return {
+            id: user.id,
+            email: user.email,
+            name: user.name,
+            division: user.division,
+          };
+        } catch (error) {
+          console.error("Error in authorize:", error);
+          return null;
+        }
       },
     }),
   ],

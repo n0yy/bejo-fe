@@ -17,7 +17,7 @@ export async function POST(request: Request) {
 
     try {
       const result = await getUserByEmail(data.email);
-      if (result?.email !== "") {
+      if (result?.email === "") {
         return NextResponse.json({
           status: 401,
           message: "Email already exist",
@@ -38,6 +38,7 @@ export async function POST(request: Request) {
     const newUser = {
       email: data.email,
       name: data.name,
+      username: data.username,
       password: hashedPassword,
       division: data.division || "",
       status: "pending", // Default

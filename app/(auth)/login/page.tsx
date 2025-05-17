@@ -14,7 +14,10 @@ import {
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import Link from "next/link";
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { signIn, useSession } from "next-auth/react";
+import { useRouter } from "next/navigation";
+import { FaSpinner } from "react-icons/fa";
 
 // Schema untuk form login
 const loginFormSchema = z.object({
@@ -26,6 +29,7 @@ const loginFormSchema = z.object({
 type LoginFormValues = z.infer<typeof loginFormSchema>;
 
 export default function LoginPage() {
+  const router = useRouter();
   const form = useForm<LoginFormValues>({
     resolver: zodResolver(loginFormSchema),
     defaultValues: {
@@ -34,31 +38,39 @@ export default function LoginPage() {
     },
   });
 
+  const { data: session, status } = useSession();
   const [isLoading, setIsLoading] = useState(false);
 
-  async function onSubmit(values: LoginFormValues) {
-    // Implementasi logika login, misalnya API call
-    console.log(values);
+  useEffect(() => {
+    if (status === "authenticated") {
+      console.log(session);
+      if (session?.user?.role !== "admin") {
+        router.push("/");
+      } else {
+        router.push("/dashboard");
+      }
+    }
+  }, [router, session]);
 
-    // Contoh implementasi:
-    // try {
-    //   const response = await fetch('/api/login', {
-    //     method: 'POST',
-    //     headers: { 'Content-Type': 'application/json' },
-    //     body: JSON.stringify(values),
-    //   });
-    //
-    //   if (response.ok) {
-    //     // Redirect ke dashboard setelah login berhasil
-    //     window.location.href = '/dashboard';
-    //   } else {
-    //     // Handle error
-    //     const data = await response.json();
-    //     console.error('Login failed:', data.message);
-    //   }
-    // } catch (error) {
-    //   console.error('Error during login:', error);
-    // }
+  async function onSubmit(values: LoginFormValues) {
+    try {
+      setIsLoading(true);
+      const res = await signIn("credentials", {
+        email: values.email,
+        password: values.password,
+        redirect: false,
+      });
+
+      if (!res?.ok) {
+        form.setError("password", {
+          message: "Invalid email or password",
+        });
+      }
+    } catch (error) {
+      console.error("Login error:", error);
+    } finally {
+      setIsLoading(false);
+    }
   }
 
   return (
@@ -97,7 +109,7 @@ export default function LoginPage() {
             )}
           />
           <Button type="submit" className="w-full hover:cursor-pointer">
-            Login
+            {isLoading ? <FaSpinner className="animate-spin" /> : "Login"}
           </Button>
         </form>
         <div className="text-center">

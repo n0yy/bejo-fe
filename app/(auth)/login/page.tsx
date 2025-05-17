@@ -1,4 +1,3 @@
-// File: app/(auth)/login/page.tsx
 "use client";
 
 import { z } from "zod";
@@ -15,10 +14,11 @@ import {
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import Link from "next/link";
+import { useState } from "react";
 
 // Schema untuk form login
 const loginFormSchema = z.object({
-  username: z.string().min(2),
+  email: z.string().email(),
   password: z.string().min(8),
 });
 
@@ -29,10 +29,12 @@ export default function LoginPage() {
   const form = useForm<LoginFormValues>({
     resolver: zodResolver(loginFormSchema),
     defaultValues: {
-      username: "",
+      email: "",
       password: "",
     },
   });
+
+  const [isLoading, setIsLoading] = useState(false);
 
   async function onSubmit(values: LoginFormValues) {
     // Implementasi logika login, misalnya API call
@@ -61,9 +63,7 @@ export default function LoginPage() {
 
   return (
     <>
-      <h1 className="text-4xl font-bold text-center mb-8">
-        Login to BEJO Assistant
-      </h1>
+      <h1 className="text-4xl font-bold text-center mb-8">Login</h1>
 
       <Form {...form}>
         <form
@@ -72,10 +72,10 @@ export default function LoginPage() {
         >
           <FormField
             control={form.control}
-            name="username"
+            name="email"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Username</FormLabel>
+                <FormLabel>Email</FormLabel>
                 <FormControl>
                   <Input placeholder="bedo72" {...field} />
                 </FormControl>
@@ -96,7 +96,7 @@ export default function LoginPage() {
               </FormItem>
             )}
           />
-          <Button type="submit" className="w-full">
+          <Button type="submit" className="w-full hover:cursor-pointer">
             Login
           </Button>
         </form>

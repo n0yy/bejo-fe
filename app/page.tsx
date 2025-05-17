@@ -3,14 +3,22 @@
 import HistoryModal from "@/components/HistoryModal";
 import Navbar from "@/components/Navbar";
 import { useState, useEffect } from "react";
+import { useSession, signIn, signOut } from "next-auth/react";
+import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import BackgroundGrid from "@/components/BackgroundGrid";
 import PromptInput from "@/components/PromptInput";
 
 export default function Home() {
   const [historyModal, setHistoryModal] = useState<boolean>(false);
+  const router = useRouter();
 
-  // Menangani penekanan tombol Escape untuk menutup modal
+  const { data: session, status } = useSession();
+
+  useEffect(() => {
+    if (status === "unauthenticated") router.push("/login");
+  }, [router, session]);
+
   useEffect(() => {
     const handleEscKeyPress = (e: KeyboardEvent) => {
       if (e.key === "Escape" && historyModal) {

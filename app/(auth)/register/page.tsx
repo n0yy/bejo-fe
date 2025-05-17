@@ -23,6 +23,8 @@ import {
 } from "@/components/ui/select";
 import Link from "next/link";
 import { Checkbox } from "@/components/ui/checkbox";
+import { toast } from "sonner";
+import { FaSpinner } from "react-icons/fa";
 
 // Schema untuk form registrasi
 const registerFormSchema = z.object({
@@ -76,32 +78,28 @@ export default function RegisterPage() {
   });
 
   const [checked, setChecked] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
 
   const isFormValid = form.formState.isValid && checked;
 
   async function onSubmit(values: RegisterFormValues) {
-    // Implementasi logika submit, misalnya API call
-    console.log(values);
+    try {
+      setIsLoading(true);
+      const response = await fetch("/api/auth/register", {
+        method: "POST",
+        body: JSON.stringify(values),
+      });
+      const result = await response.json();
+      if (!response.ok)
+        throw new Error(result.error || "Something went wrong...");
 
-    // Contoh implementasi:
-    // try {
-    //   const response = await fetch('/api/register', {
-    //     method: 'POST',
-    //     headers: { 'Content-Type': 'application/json' },
-    //     body: JSON.stringify(values),
-    //   });
-    //
-    //   if (response.ok) {
-    //     // Redirect ke halaman login atau dashboard
-    //     window.location.href = '/login';
-    //   } else {
-    //     // Handle error
-    //     const data = await response.json();
-    //     console.error('Registration failed:', data.message);
-    //   }
-    // } catch (error) {
-    //   console.error('Error during registration:', error);
-    // }
+      toast(result.message);
+      form.reset();
+    } catch (error: any) {
+      toast(error.message);
+    } finally {
+      setIsLoading(false);
+    }
   }
 
   return (
@@ -214,9 +212,9 @@ export default function RegisterPage() {
             className={`w-full hover:cursor-pointer ${
               isFormValid ? "" : "cursor-not-allowed"
             }`}
-            disabled={!isFormValid}
+            disabled={!isFormValid && !isLoading}
           >
-            Register
+            {isLoading ? <FaSpinner className="animate-spin" /> : "Register"}
           </Button>
         </form>
         <div className="text-center">

@@ -11,7 +11,7 @@ import {
   writeBatch,
   setDoc,
 } from "firebase/firestore";
-import type { User } from "@/types/user";
+import type { User } from "@/lib/types/user";
 
 type UserStatusUpdate = {
   email: string;

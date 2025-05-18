@@ -16,7 +16,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
-import { User } from "@/types/user";
+import { User } from "@/lib/types/user";
 import {
   Select,
   SelectContent,

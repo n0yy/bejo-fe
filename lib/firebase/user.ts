@@ -7,8 +7,16 @@ import {
   doc,
   getDoc,
   updateDoc,
+  serverTimestamp,
+  writeBatch,
+  setDoc,
 } from "firebase/firestore";
 import type { User } from "@/types/user";
+
+type UserStatusUpdate = {
+  email: string;
+  status: "pending" | "approved" | "rejected";
+};
 
 /**
  * Mengambil semua user
@@ -26,13 +34,51 @@ export async function getUsers(): Promise<User[]> {
       createdAt: data.createdAt?.toDate?.().toISOString() ?? null,
     });
   });
-
   return users;
 }
 
-export async function updateUserStatus(id: string, status: string) {
-  const userRef = doc(db, "users", id);
-  await updateDoc(userRef, { status });
+/**
+ * Update status pengguna satu per satu menggunakan setDoc.
+ * @param users - Array of users (harus punya email & status)
+ * @returns Object berisi jumlah data berhasil diperbarui
+ */
+export async function updateUserStatus(users: UserStatusUpdate[]) {
+  let successCount = 0;
+
+  try {
+    const updates = users.map(async (user) => {
+      const email = user.email;
+
+      // Validasi: Firestore tidak izinkan karakter khusus dalam doc ID
+      if (!email || /[\/\[\]#?]/.test(email)) {
+        console.warn(`❌ Invalid email format, skipped: ${email}`);
+        return;
+      }
+
+      const userRef = doc(db, "users", email);
+
+      await setDoc(
+        userRef,
+        {
+          status: user.status,
+          updatedAt: serverTimestamp(),
+        },
+        { merge: true }
+      );
+
+      successCount++;
+    });
+
+    await Promise.all(updates);
+
+    return {
+      success: true,
+      count: successCount,
+    };
+  } catch (error) {
+    console.error("🔥 Error updating users individually:", error);
+    throw error;
+  }
 }
 
 /**

@@ -1,15 +1,9 @@
-import {
-  Calendar,
-  Home,
-  LogOut,
-  Search,
-  Settings,
-  User,
-  Brain,
-} from "lucide-react";
+"use client";
+
+import { Home, LogOut, User, Brain } from "lucide-react";
 
 import { Badge } from "./ui/badge";
-
+import { useSession } from "next-auth/react";
 import {
   Sidebar,
   SidebarContent,
@@ -27,6 +21,7 @@ import {
 } from "@/components/ui/sidebar";
 import Image from "next/image";
 import Link from "next/link";
+import Avatarr from "./Avatar";
 
 // Menu items.
 const applicationLinks = [
@@ -43,18 +38,27 @@ const applicationLinks = [
 ];
 
 export function AppSidebar() {
+  const { data: session, status } = useSession();
   return (
     <Sidebar>
       <SidebarHeader>
         <SidebarMenu>
           <SidebarMenuItem className="flex items-center ">
-            <Image src="/bejo.png" width={56} height={56} alt="Logo Bejo" />
-            <div className="flex items-center justify-between">
-              <span className="text-xl font-bold mr-14">Bejo AI</span>
-              <Badge variant={"outline"} className="mt-1">
-                Admin
-              </Badge>
-            </div>
+            <Link href="/" className="flex items-center justify-between">
+              <Image
+                src="/bejo.png"
+                width={56}
+                height={56}
+                alt="Logo Bejo"
+                className="dark:invert"
+              />
+              <div>
+                <span className="text-xl font-bold mr-14">Bejo AI</span>
+                <Badge variant={"outline"} className="mt-1">
+                  Admin
+                </Badge>
+              </div>
+            </Link>
           </SidebarMenuItem>
         </SidebarMenu>
       </SidebarHeader>
@@ -106,7 +110,15 @@ export function AppSidebar() {
       <SidebarFooter>
         <SidebarMenu>
           <SidebarMenuItem className="flex items-center justify-between">
-            <div className="block">Username</div>
+            <div className="flex items-center">
+              <Avatarr />
+              <div className="flex flex-col">
+                <span className="font-semibold">{session?.user?.name}</span>
+                <span className="text-xs text-slate-500">
+                  {session?.user?.division}
+                </span>
+              </div>
+            </div>
             <div className="hover:bg-red-100 p-2 rounded-md hover:cursor-pointer">
               <LogOut className="h-5 w-5 text-red-600" />
             </div>

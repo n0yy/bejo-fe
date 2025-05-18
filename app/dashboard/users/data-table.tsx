@@ -16,8 +16,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
-import { User } from "./columns";
-import { stat } from "fs";
+import { User } from "@/types/user";
 import {
   Select,
   SelectContent,
@@ -25,18 +24,22 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import toast from "react-hot-toast";
+import { updateUserStatus } from "@/lib/firebase/user";
 
 interface DataTableProps {
   data: User[];
+  onSuccess?: () => void;
 }
 
-export function DataTable({ data }: DataTableProps) {
+export function DataTable({ data, onSuccess }: DataTableProps) {
   const [tableData, setTableData] = useState<User[]>(data);
+  const [loading, setLoading] = useState<boolean>(false);
 
-  const updateStatus = (id: string, newStatus: User["status"]) => {
+  const updateStatus = (email: string, newStatus: User["status"]) => {
     setTableData((prev) =>
       prev.map((item) =>
-        item.id === id ? { ...item, status: newStatus } : item
+        item.email === email ? { ...item, status: newStatus } : item
       )
     );
   };
@@ -71,10 +74,10 @@ export function DataTable({ data }: DataTableProps) {
       header: "Status",
       cell: ({ row }) => {
         const status = row.original.status;
-        const id = row.original.id;
+        const email = row.original.email;
 
         const handleChange = (newStatus: string) => {
-          updateStatus(id, newStatus as User["status"]);
+          updateStatus(email, newStatus as User["status"]);
         };
 
         const statusColor =
@@ -106,9 +109,42 @@ export function DataTable({ data }: DataTableProps) {
     getCoreRowModel: getCoreRowModel(),
   });
 
-  const handleSave = () => {
-    console.log("Saving:", tableData);
-    // TODO: kirim ke Firestore / FastAPI
+  const saveToFirestore = async () => {
+    try {
+      setLoading(true);
+      const minimalData = tableData.map((user) => ({
+        email: user.email,
+        status: user.status,
+      }));
+
+      const result = await updateUserStatus(minimalData);
+
+      if (onSuccess) {
+        onSuccess();
+      }
+
+      return result;
+    } catch (error) {
+      console.error("Error saving data:", error);
+      throw error;
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleSave = async () => {
+    toast.promise(
+      saveToFirestore(),
+      {
+        loading: "Menyimpan perubahan...",
+        success: (data) => `Berhasil memperbarui ${data.count} data pengguna!`,
+        error: "Gagal menyimpan perubahan",
+      },
+      {
+        duration: 4000,
+        position: "top-center",
+      }
+    );
   };
 
   return (
@@ -150,12 +186,13 @@ export function DataTable({ data }: DataTableProps) {
           )}
         </TableBody>
       </Table>
-      <div className="absolute bottom-10 right-10 hover:shadow hover:cursor-pointer">
+      <div className="absolute bottom-10 right-10">
         <Button
           onClick={handleSave}
           className="hover:shadow hover:cursor-pointer"
+          disabled={loading}
         >
-          Save Update
+          {loading ? "Saving..." : "Save Update"}
         </Button>
       </div>
     </div>

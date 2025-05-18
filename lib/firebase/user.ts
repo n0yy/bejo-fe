@@ -6,17 +6,33 @@ import {
   getDocs,
   doc,
   getDoc,
+  updateDoc,
 } from "firebase/firestore";
+import type { User } from "@/types/user";
 
-// Definisikan interface untuk User
-interface User {
-  id: string;
-  email: string;
-  password: string;
-  name: string;
-  division: string;
-  status: "pending" | "approved" | "rejected";
-  createdAt: any; // Firebase Timestamp
+/**
+ * Mengambil semua user
+ * @returns Promise yang menyelesaikan array user
+ */
+export async function getUsers(): Promise<User[]> {
+  const usersRef = collection(db, "users");
+  const querySnapshot = await getDocs(usersRef);
+  const users: User[] = [];
+
+  querySnapshot.forEach((doc) => {
+    const data = doc.data() as User & { createdAt?: any };
+    users.push({
+      ...data,
+      createdAt: data.createdAt?.toDate?.().toISOString() ?? null,
+    });
+  });
+
+  return users;
+}
+
+export async function updateUserStatus(id: string, status: string) {
+  const userRef = doc(db, "users", id);
+  await updateDoc(userRef, { status });
 }
 
 /**
@@ -49,9 +65,11 @@ export async function getUserByEmail(email: string): Promise<User | null> {
     // Kembalikan data user dengan format yang sesuai
     return {
       id: userDoc.id,
-      email: userData.email || "",
-      password: userData.password || "",
       name: userData.name || "",
+      username: userData.username || "",
+      email: userData.email || "",
+      role: userData.role || "user",
+      password: userData.password || "",
       division: userData.division || "",
       status: userData.status || "pending",
       createdAt: userData.createdAt,

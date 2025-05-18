@@ -6,4 +6,6 @@ export interface User {
   role: "admin" | "user";
   division: string;
   status: "approved" | "pending" | "rejected";
+  createdAt: string;
+  password: string;
 }

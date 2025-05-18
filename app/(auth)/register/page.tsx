@@ -25,6 +25,7 @@ import Link from "next/link";
 import { Checkbox } from "@/components/ui/checkbox";
 import { toast } from "sonner";
 import { FaSpinner } from "react-icons/fa";
+import { useRouter } from "next/navigation";
 
 // Schema untuk form registrasi
 const registerFormSchema = z.object({
@@ -66,6 +67,7 @@ const registerFormSchema = z.object({
 type RegisterFormValues = z.infer<typeof registerFormSchema>;
 
 export default function RegisterPage() {
+  const router = useRouter();
   const form = useForm<RegisterFormValues>({
     resolver: zodResolver(registerFormSchema),
     defaultValues: {
@@ -85,18 +87,29 @@ export default function RegisterPage() {
   async function onSubmit(values: RegisterFormValues) {
     try {
       setIsLoading(true);
+
+      // Pertama lakukan fetch
       const response = await fetch("/api/auth/register", {
         method: "POST",
         body: JSON.stringify(values),
       });
-      const result = await response.json();
-      if (!response.ok)
-        throw new Error(result.error || "Something went wrong...");
 
-      toast(result.message);
+      const data = await response.json();
+
+      // Gunakan toast secara manual berdasarkan hasil respons
+      if (!response.ok) {
+        toast.error(data.message || "Something went wrong...");
+        return;
+      }
+
+      toast.success(data.message || "Register successful!");
       form.reset();
+
+      setTimeout(() => {
+        router.push("/login");
+      }, 3000);
     } catch (error: any) {
-      toast(error.message);
+      toast.error(error.message || "Unexpected error occurred");
     } finally {
       setIsLoading(false);
     }

@@ -18,6 +18,7 @@ import { useState, useEffect } from "react";
 import { signIn, useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import { FaSpinner } from "react-icons/fa";
+import { toast } from "sonner";
 
 // Schema untuk form login
 const loginFormSchema = z.object({
@@ -55,18 +56,36 @@ export default function LoginPage() {
   async function onSubmit(values: LoginFormValues) {
     try {
       setIsLoading(true);
+
       const res = await signIn("credentials", {
         email: values.email,
         password: values.password,
         redirect: false,
       });
 
-      if (!res?.ok) {
+      if (!res) {
+        toast.error("No response from server");
+        return;
+      }
+
+      // Tangani jika akun belum disetujui
+      if (res.error === "AccountNotApproved") {
+        toast.error("Account not approved by admin yet");
+        return;
+      }
+
+      if (!res.ok) {
         form.setError("password", {
           message: "Invalid email or password",
         });
+        toast.error("Invalid email or password");
+        return;
       }
+
+      toast.success("Login success!");
+      router.push("/dashboard");
     } catch (error) {
+      toast.error("Unexpected error occurred");
       console.error("Login error:", error);
     } finally {
       setIsLoading(false);

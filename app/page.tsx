@@ -41,7 +41,7 @@ export default function Home() {
         <div className="w-full max-w-4xl mx-auto flex flex-col items-center">
           <header className="text-center">
             <h1 className="text-3xl md:text-4xl lg:text-5xl font-bold mb-3">
-              Halo, Semangat Pagi John Doe!
+              Halo, Semangat Pagi {session?.user?.name}!
             </h1>
           </header>
 

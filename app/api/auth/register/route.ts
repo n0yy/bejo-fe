@@ -17,11 +17,15 @@ export async function POST(request: Request) {
 
     try {
       const result = await getUserByEmail(data.email);
-      if (result?.email === "") {
-        return NextResponse.json({
-          status: 401,
-          message: "Email already exist",
-        });
+
+      if (result) {
+        return NextResponse.json(
+          {
+            status: 409,
+            message: "Email already exists",
+          },
+          { status: 409 }
+        );
       }
     } catch (error) {
       console.error("Error saat memeriksa user yang sudah ada:", error);

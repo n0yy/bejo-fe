@@ -1,13 +1,6 @@
 import { NextResponse } from "next/server";
 import { db } from "@/lib/firebase/app";
-import {
-  collection,
-  query,
-  where,
-  getDocs,
-  addDoc,
-  serverTimestamp,
-} from "firebase/firestore";
+import { collection, addDoc, serverTimestamp } from "firebase/firestore";
 import { hash } from "bcryptjs";
 import { getUserByEmail } from "@/lib/firebase/user";
 

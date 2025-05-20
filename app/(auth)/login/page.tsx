@@ -16,7 +16,7 @@ import { Input } from "@/components/ui/input";
 import Link from "next/link";
 import { useState, useEffect } from "react";
 import { signIn, useSession } from "next-auth/react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { FaSpinner } from "react-icons/fa";
 import { toast } from "sonner";
 
@@ -42,6 +42,30 @@ export default function LoginPage() {
   const { data: session, status } = useSession();
   const [isLoading, setIsLoading] = useState(false);
 
+  const searchParams = useSearchParams();
+  const [error, setError] = useState<string | null>(null);
+
+  const errorMessageMap: Record<string, string> = {
+    CredentialsSignin: "Invalid email or password.",
+    AccountNotApproved: "Your account is not yet approved.",
+    InvalidCredentials: "Invalid email or password.",
+    AuthenticationFailed: "Authentication failed. Please try again.",
+    default: "An unexpected error occurred. Please try again.",
+  };
+
+  useEffect(() => {
+    const errorParam = searchParams.get("error");
+    if (errorParam) {
+      setError(errorParam);
+      toast.error(errorMessageMap[errorParam] || errorMessageMap.default);
+    }
+  }, [searchParams]);
+
+  console.log(error);
+  if (error) {
+    toast.error(errorMessageMap[error] || errorMessageMap.default);
+  }
+
   useEffect(() => {
     if (status === "authenticated") {
       console.log(session);
@@ -56,34 +80,22 @@ export default function LoginPage() {
   async function onSubmit(values: LoginFormValues) {
     try {
       setIsLoading(true);
-
       const res = await signIn("credentials", {
         email: values.email,
         password: values.password,
         redirect: false,
+        callbackUrl: "/dashboard",
       });
 
-      if (!res) {
-        toast.error("No response from server");
+      if (res?.error) {
+        // Errors will now be properly propagated from NextAuth
+        toast.error(errorMessageMap[res.error] || errorMessageMap.default);
         return;
       }
 
-      // Tangani jika akun belum disetujui
-      if (res.error === "AccountNotApproved") {
-        toast.error("Account not approved by admin yet");
-        return;
+      if (res?.url) {
+        router.push(res.url);
       }
-
-      if (!res.ok) {
-        form.setError("password", {
-          message: "Invalid email or password",
-        });
-        toast.error("Invalid email or password");
-        return;
-      }
-
-      toast.success("Login success!");
-      router.push("/dashboard");
     } catch (error) {
       toast.error("Unexpected error occurred");
       console.error("Login error:", error);
@@ -108,7 +120,7 @@ export default function LoginPage() {
               <FormItem>
                 <FormLabel>Email</FormLabel>
                 <FormControl>
-                  <Input placeholder="bedo72" {...field} />
+                  <Input placeholder="user@example.com" {...field} />
                 </FormControl>
                 <FormMessage />
               </FormItem>

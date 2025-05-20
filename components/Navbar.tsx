@@ -35,7 +35,6 @@ export default function Navbar() {
   const { data: session, status } = useSession();
 
   const [historyModal, setHistoryModal] = useState<boolean>(false);
-
   useEffect(() => {
     const handleEscKeyPress = (e: KeyboardEvent) => {
       if (e.key === "Escape" && historyModal) {
@@ -119,8 +118,10 @@ export default function Navbar() {
                       <span>Profile</span>
                     </DropdownMenuItem>
                     <DropdownMenuItem className="cursor-pointer">
-                      <Settings2 className="h-4 w-4 mr-2" />
-                      <span>Settings</span>
+                      <Link href={"/settings"} className="flex items-center">
+                        <Settings2 className="h-4 w-4 mr-4" />
+                        <span>Settings</span>
+                      </Link>
                     </DropdownMenuItem>
                   </DropdownMenuGroup>
                   <DropdownMenuSeparator />

@@ -3,7 +3,7 @@
 import { Home, LogOut, User, Brain } from "lucide-react";
 
 import { Badge } from "./ui/badge";
-import { useSession } from "next-auth/react";
+import { signOut, useSession } from "next-auth/react";
 import {
   Sidebar,
   SidebarContent,
@@ -120,7 +120,10 @@ export function AppSidebar() {
               </div>
             </div>
             <div className="hover:bg-red-100 p-2 rounded-md hover:cursor-pointer">
-              <LogOut className="h-5 w-5 text-red-600" />
+              <LogOut
+                className="h-5 w-5 text-red-600"
+                onClick={() => signOut()}
+              />
             </div>
           </SidebarMenuItem>
         </SidebarMenu>

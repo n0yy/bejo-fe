@@ -102,17 +102,33 @@ export const authOptions: NextAuthOptions = {
             throw new Error("Invalid password");
           }
 
+          // Restrukturisasi dbCreds sesuai dengan format yang diharapkan
           return {
             id: user.id,
             email: user.email,
             name: user.name,
             division: user.division,
             role: user.role,
-            dbCreds: user.dbCreds,
+            dbCreds: user.dbCreds
+              ? {
+                  type: user.dbCreds.type,
+                  host: user.dbCreds.host,
+                  port: user.dbCreds.port,
+                  username: user.dbCreds.username,
+                  password: user.dbCreds.password,
+                  dbname: user.dbCreds.dbname,
+                }
+              : undefined,
           };
-        } catch (error) {
+        } catch (error: Error | any) {
           console.error("Authorization error:", error);
-          return null;
+          if (error.message === "Account not approved") {
+            throw new Error("AccountNotApproved");
+          }
+          if (error.message === "Invalid password") {
+            throw new Error("InvalidCredentials");
+          }
+          throw new Error("AuthenticationFailed");
         }
       },
     }),
@@ -143,19 +159,11 @@ export const authOptions: NextAuthOptions = {
   },
   pages: {
     signIn: "/login",
-    error: "/login?error=auth",
+    error: "/login",
   },
   secret: process.env.NEXTAUTH_SECRET,
   jwt: {
     maxAge: 30 * 24 * 60 * 60, // 30 days
-  },
-  events: {
-    async signIn({ user }) {
-      console.log(`User ${user.email} signed in`);
-    },
-    async signOut({ token }) {
-      console.log(`User ${token.email} signed out`);
-    },
   },
   debug: process.env.NODE_ENV === "development",
 };

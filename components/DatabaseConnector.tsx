@@ -1,5 +1,5 @@
-import React, { useState } from "react";
-import { Database, AlertTriangle, Loader2 } from "lucide-react";
+import React, { useEffect, useState } from "react";
+import { Database, AlertTriangle, Loader2, CheckCheck } from "lucide-react";
 import { DiMysql, DiPostgresql } from "react-icons/di";
 import { GrOracle } from "react-icons/gr";
 import {
@@ -20,21 +20,32 @@ import { Progress } from "./ui/progress";
 import { useSession } from "next-auth/react";
 import { ProcessStatus } from "@/lib/db/types";
 import { Checkbox } from "./ui/checkbox";
+import { User } from "@/lib/types/user";
 
 export default function DatabaseConnector() {
-  const { data: session } = useSession();
+  const { data: session, update: updateSession } = useSession();
   const [open, setOpen] = useState(false);
-  const dbIsConnected = session?.user.dbCreds;
-  console.log(`Database status connect: ${dbIsConnected}`);
-  console.log(session?.user);
+  const handleSuccess = (updatedUser?: User) => {
+    setOpen(false);
+    updateSession({ user: updatedUser });
+  };
+
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger
-        className="flex items-center space-x-2 border px-4 py-1.5 rounded-lg hover:bg-accent hover:cursor-pointer transition"
-        // disabled={dbIsConnected}
+        className={`${
+          !!session?.user?.dbCreds && "bg-green-100 hover:bg-green-100"
+        } flex items-center space-x-2 border px-4 py-1.5 rounded-lg hover:bg-accent hover:cursor-pointer transition-all duration-200`}
+        disabled={!!session?.user?.dbCreds}
       >
-        <Database width={16} />
-        <span className="text-sm">Connect to Database</span>
+        {!!session?.user?.dbCreds ? (
+          <CheckCheck width={16} />
+        ) : (
+          <Database width={16} />
+        )}
+        <span className="text-sm">
+          {!!session?.user?.dbCreds ? "Connected" : "Connect to Database"}
+        </span>
       </DialogTrigger>
 
       <DialogContent className="sm:max-w-[550px]">
@@ -58,13 +69,17 @@ export default function DatabaseConnector() {
           </Alert>
         </DialogHeader>
 
-        <DatabaseConnectionTabs onSuccess={() => setOpen(false)} />
+        <DatabaseConnectionTabs onSuccess={handleSuccess} />
       </DialogContent>
     </Dialog>
   );
 }
 
-function DatabaseConnectionTabs({ onSuccess }: { onSuccess: () => void }) {
+function DatabaseConnectionTabs({
+  onSuccess,
+}: {
+  onSuccess: (updatedUser?: User) => void;
+}) {
   return (
     <Tabs defaultValue="mysql" className="w-full mt-4">
       <TabsList className="grid w-full grid-cols-3">
@@ -120,7 +135,7 @@ type DatabaseFormProps = {
   type: string;
   dbLabel: string;
   showServiceName?: boolean;
-  onSuccess: () => void;
+  onSuccess: (updatedUser?: User) => void;
 };
 
 function DatabaseForm({
@@ -204,7 +219,7 @@ function DatabaseForm({
           eventSource?.close();
           setConnecting(false);
           localStorage.removeItem("initialMessage");
-          onSuccess();
+          onSuccess(data.data?.user);
         } else if (data.status === ProcessStatus.ERROR) {
           eventSource?.close();
           setConnecting(false);

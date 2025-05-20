@@ -1,3 +1,5 @@
+import bcrypt from "bcryptjs";
+import { User } from "../types/user";
 import { db } from "./app";
 import {
   collection,
@@ -6,162 +8,140 @@ import {
   getDocs,
   doc,
   getDoc,
-  serverTimestamp,
-  setDoc,
+  updateDoc,
+  writeBatch,
 } from "firebase/firestore";
-import type { User } from "@/lib/types/user";
 
-type UserStatusUpdate = {
-  email: string;
-  status: "pending" | "approved" | "rejected";
+// Helper function to safely convert Firestore timestamp to ISO string
+const toISODateString = (timestamp?: any): string | null => {
+  return timestamp?.toDate?.().toISOString() ?? null;
 };
 
-export const getUserDocRefById = (userId: string) => {
-  return doc(db, "users", userId);
-};
+export const getUserDocRefById = (userId: string) => doc(db, "users", userId);
 
 /**
- * Mengambil semua user
- * @returns Promise yang menyelesaikan array user
+ * Fetches all users from Firestore
  */
 export async function getUsers(): Promise<User[]> {
-  const usersRef = collection(db, "users");
-  const querySnapshot = await getDocs(usersRef);
-  const users: User[] = [];
-
-  querySnapshot.forEach((doc) => {
-    const data = doc.data() as User & { createdAt?: any };
-    users.push({
-      ...data,
-      createdAt: data.createdAt?.toDate?.().toISOString() ?? null,
-    });
-  });
-  return users;
+  const snapshot = await getDocs(collection(db, "users"));
+  return snapshot.docs.map((doc) => ({
+    id: doc.id,
+    name: doc.data().name || "",
+    username: doc.data().username || "",
+    email: doc.data().email || "",
+    role: doc.data().role || "user",
+    password: doc.data().password || "",
+    division: doc.data().division || "",
+    status: doc.data().status || "pending",
+    dbCreds: doc.data().dbCreds || null,
+    createdAt: toISODateString(doc.data().createdAt),
+  }));
 }
 
 /**
- * Update status pengguna satu per satu menggunakan setDoc.
- * @param users - Array of users (harus punya email & status)
- * @returns Object berisi jumlah data berhasil diperbarui
- */
-export async function updateUserStatus(users: UserStatusUpdate[]) {
-  let successCount = 0;
-
-  try {
-    const updates = users.map(async (user) => {
-      const email = user.email;
-
-      // Validasi: Firestore tidak izinkan karakter khusus dalam doc ID
-      if (!email || /[\/\[\]#?]/.test(email)) {
-        console.warn(`❌ Invalid email format, skipped: ${email}`);
-        return;
-      }
-
-      const userRef = doc(db, "users", email);
-
-      await setDoc(
-        userRef,
-        {
-          status: user.status,
-          updatedAt: serverTimestamp(),
-        },
-        { merge: true }
-      );
-
-      successCount++;
-    });
-
-    await Promise.all(updates);
-
-    return {
-      success: true,
-      count: successCount,
-    };
-  } catch (error) {
-    console.error("🔥 Error updating users individually:", error);
-    throw error;
-  }
-}
-
-/**
- * Mengambil data pengguna berdasarkan email
- * @param email - Email pengguna yang dicari
- * @returns Promise yang menyelesaikan data pengguna atau null jika tidak ditemukan
+ * Fetches user by email
  */
 export async function getUserByEmail(email: string): Promise<User | null> {
-  try {
-    // Memastikan email tidak kosong
-    if (!email) {
-      throw new Error("Email tidak boleh kosong");
-    }
+  if (!email?.trim()) throw new Error("Email is required");
 
-    // Siapkan query
-    const usersRef = collection(db, "users");
-    const q = query(usersRef, where("email", "==", email.toLowerCase().trim()));
+  const normalizedEmail = email.toLowerCase().trim();
+  const q = query(
+    collection(db, "users"),
+    where("email", "==", normalizedEmail)
+  );
+  const snapshot = await getDocs(q);
 
-    // Eksekusi query
-    const querySnapshot = await getDocs(q);
+  if (snapshot.empty) return null;
 
-    if (querySnapshot.empty) {
-      return null;
-    }
-
-    // Ambil dokumen pertama
-    const userDoc = querySnapshot.docs[0];
-    const userData = userDoc.data();
-
-    // Kembalikan data user dengan format yang sesuai
-    return {
-      id: userDoc.id,
-      name: userData.name || "",
-      username: userData.username || "",
-      email: userData.email || "",
-      role: userData.role || "user",
-      password: userData.password || "",
-      division: userData.division || "",
-      status: userData.status || "pending",
-      createdAt: userData.createdAt,
-    } as User;
-  } catch (error) {
-    console.error("Error saat mengambil user berdasarkan email:", error);
-    throw error; // Re-throw error untuk penanganan di level atas
-  }
+  const doc = snapshot.docs[0];
+  return {
+    id: doc.id,
+    name: doc.data().name || "",
+    email: doc.data().email || "",
+    role: doc.data().role || "user",
+    password: doc.data().password || "",
+    division: doc.data().division || "",
+    status: doc.data().status || "pending",
+    dbCreds: doc.data().dbCreds || null,
+    createdAt: toISODateString(doc.data().createdAt),
+  };
 }
 
 /**
- * Mengambil data pengguna berdasarkan ID
- * @param userId - ID pengguna yang dicari
- * @returns Promise yang menyelesaikan data pengguna atau null jika tidak ditemukan
+ * Fetches user by ID
  */
 export async function getUserById(userId: string): Promise<User | null> {
-  try {
-    // Memastikan userId tidak kosong
-    if (!userId) {
-      throw new Error("User ID tidak boleh kosong");
-    }
+  if (!userId) throw new Error("User ID is required");
 
-    // Ambil dokumen menggunakan ID
+  const docRef = doc(db, "users", userId);
+  const snapshot = await getDoc(docRef);
+
+  if (!snapshot.exists()) return null;
+
+  const data = snapshot.data();
+  return {
+    id: snapshot.id,
+    email: data.email || "",
+    password: data.password || "",
+    name: data.name || "",
+    division: data.division || "",
+    status: data.status || "pending",
+    dbCreds: data.dbCreds || null,
+    createdAt: toISODateString(data.createdAt),
+  };
+}
+
+/**
+ * Updates basic user information
+ */
+export async function updateUser(
+  userId: string,
+  userData: Partial<Omit<User, "dbCreds">>
+): Promise<void> {
+  if (!userId) throw new Error("User ID is required");
+  await updateDoc(doc(db, "users", userId), userData);
+}
+
+/**
+ * Updates database credentials for a user
+ */
+export async function updateUserDbCreds(
+  userId: string,
+  dbCreds: Omit<User["dbCreds"], "password"> & { password: string }
+): Promise<void> {
+  if (!userId) throw new Error("User ID is required");
+
+  const hashedPassword = await bcrypt.hash(dbCreds.password, 10);
+  await updateDoc(doc(db, "users", userId), {
+    dbCreds: { ...dbCreds, password: hashedPassword },
+  });
+}
+
+/**
+ * Updates multiple user statuses in Firestore using a batch operation
+ * @param updates Array of user ID and new status pairs
+ * @throws Error if updates are invalid or batch fails
+ */
+export async function updateUserStatuses(
+  updates: { userId: string; status: User["status"] }[]
+): Promise<void> {
+  if (!updates?.length) throw new Error("No updates provided");
+
+  const validStatuses: User["status"][] = ["approved", "pending", "rejected"];
+  const batch = writeBatch(db);
+
+  for (const { userId, status } of updates) {
+    if (!userId) throw new Error("User ID is required");
+    if (!validStatuses.includes(status))
+      throw new Error(`Invalid status: ${status}`);
+
     const userRef = doc(db, "users", userId);
-    const userSnap = await getDoc(userRef);
+    batch.update(userRef, { status });
+  }
 
-    if (!userSnap.exists()) {
-      return null;
-    }
-
-    const userData = userSnap.data();
-
-    // Kembalikan data user dengan format yang sesuai
-    return {
-      id: userSnap.id,
-      email: userData.email || "",
-      password: userData.password || "",
-      name: userData.name || "",
-      division: userData.division || "",
-      status: userData.status || "pending",
-      createdAt: userData.createdAt,
-    } as User;
+  try {
+    await batch.commit();
   } catch (error) {
-    console.error("Error saat mengambil user berdasarkan ID:", error);
-    throw error;
+    throw new Error(`Failed to update statuses: ${(error as Error).message}`);
   }
 }

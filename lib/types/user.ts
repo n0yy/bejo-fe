@@ -1,11 +1,18 @@
 export interface User {
   id: string;
-  name: string;
-  username: string;
   email: string;
-  role: "admin" | "user";
+  password?: string;
+  name: string;
   division: string;
-  status: "approved" | "pending" | "rejected";
-  createdAt: string;
-  password: string;
+  role?: string;
+  status: "pending" | "approved" | "rejected";
+  createdAt?: any;
+  dbCreds?: {
+    type: string;
+    host: string;
+    port: string;
+    username: string;
+    password: string;
+    dbname: string;
+  };
 }

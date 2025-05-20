@@ -64,7 +64,7 @@ export function createMem0Client() {
   const mem0Client = new MemoryClient({
     apiKey: process.env.MEM0_API_KEY!,
     customPrompt: CUSTOM_PROMPT,
-  });
+  } as any);
 
   return mem0Client;
 }
@@ -96,7 +96,6 @@ export function createMem0Client() {
 export async function embedTableData(
   mem0Client: MemoryClient,
   tableData: string,
-  userId: string,
   tableName: string,
   emitStatus?: (status: ProcessStatus, message: string, table?: string) => void
 ): Promise<void> {
@@ -108,7 +107,7 @@ export async function embedTableData(
     );
 
     await mem0Client.add(tableData, {
-      user_id: userId,
+      agent_id: "bejo-database-knowledge",
       metadata: {
         category: "database",
         tableName: tableName,

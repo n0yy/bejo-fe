@@ -12,6 +12,46 @@ import { getUserById, getUserDocRefById } from "@/lib/firebase/user";
 import { updateDoc } from "firebase/firestore";
 import { hash } from "bcryptjs";
 
+async function embedWithRetry(
+  client: any,
+  data: string,
+  userId: string,
+  table: string,
+  emitStatus: (
+    status: ProcessStatus,
+    message: string,
+    table?: string,
+    progress?: { current: number; total: number }
+  ) => Promise<void>,
+  retries = 3,
+  delay = 1000
+): Promise<boolean> {
+  for (let attempt = 1; attempt <= retries; attempt++) {
+    try {
+      await embedTableData(client, data, table, emitStatus);
+      return true;
+    } catch (error: any) {
+      if (attempt === retries) {
+        console.warn(
+          `Failed to embed table ${table} after ${retries} attempts: ${
+            error.message || error
+          }`
+        );
+        await emitStatus(
+          ProcessStatus.WARNING,
+          `Skipped table ${table} due to API error after ${retries} attempts: ${
+            error.message || "Server Error"
+          }`,
+          table
+        );
+        return false;
+      }
+      await new Promise((resolve) => setTimeout(resolve, delay * attempt));
+    }
+  }
+  return false;
+}
+
 export async function GET(request: NextRequest) {
   const searchParams = request.nextUrl.searchParams;
   const userId = searchParams.get("userId");
@@ -38,6 +78,14 @@ export async function GET(request: NextRequest) {
   const encoder = new TextEncoder();
   const stream = new TransformStream();
   const writer = stream.writable.getWriter();
+  const controller = new AbortController();
+  const signal = request.signal;
+
+  // Handle client abort
+  signal.addEventListener("abort", () => {
+    console.log(`Client aborted request for userId: ${userId}`);
+    writer.close().catch(() => {});
+  });
 
   const emitStatus = async (
     status: ProcessStatus,
@@ -45,15 +93,15 @@ export async function GET(request: NextRequest) {
     table?: string,
     progress?: { current: number; total: number }
   ) => {
-    const sseMessage: SSEMessage = {
-      status,
-      message,
-      table,
-      progress,
-    };
-    await writer.write(
-      encoder.encode(`data: ${JSON.stringify(sseMessage)}\n\n`)
-    );
+    if (signal.aborted) return;
+    try {
+      const sseMessage: SSEMessage = { status, message, table, progress };
+      await writer.write(
+        encoder.encode(`data: ${JSON.stringify(sseMessage)}\n\n`)
+      );
+    } catch (error) {
+      console.warn("Failed to write to stream:", error);
+    }
   };
 
   const processDBSchema = async () => {
@@ -75,13 +123,16 @@ export async function GET(request: NextRequest) {
 
       const tables = await getTables(connection, dbConnection.type, emitStatus);
       let allSchemaText = "";
+      let processedTables = 0;
+      const failedTables: string[] = [];
 
       if (embed) {
         const mem0Client = await createMem0Client();
         for (let i = 0; i < tables.length; i++) {
+          if (signal.aborted) break;
           const table = tables[i];
           try {
-            emitStatus(
+            await emitStatus(
               ProcessStatus.GETTING_SCHEMA,
               `Processing table ${i + 1}/${tables.length}: ${table}`,
               table,
@@ -101,18 +152,26 @@ export async function GET(request: NextRequest) {
             const tableData = schema + "\nSample Data:\n" + samples + "\n\n";
             allSchemaText += tableData;
 
-            await embedTableData(
+            const embedded = await embedWithRetry(
               mem0Client,
               tableData,
               userId,
               table,
               emitStatus
             );
+            if (embedded) {
+              processedTables++;
+            } else {
+              failedTables.push(table);
+            }
           } catch (error: any) {
-            emitStatus(
-              ProcessStatus.ERROR,
-              `Error processing table ${table}: ${error.message}`,
-              table
+            console.warn(`Skipping table ${table}: ${error.message}`);
+            failedTables.push(table);
+            await emitStatus(
+              ProcessStatus.WARNING,
+              `Skipped table ${table} due to error: ${error.message}`,
+              table,
+              { current: i + 1, total: tables.length }
             );
             continue;
           }
@@ -123,33 +182,43 @@ export async function GET(request: NextRequest) {
           dbConnection.type,
           emitStatus
         );
+        processedTables = tables.length;
       }
 
-      await emitStatus(
-        ProcessStatus.COMPLETED,
-        "Database schema extraction completed successfully",
-        undefined,
-        {
-          current: tables.length,
-          total: tables.length,
-        }
-      );
+      if (!signal.aborted) {
+        await emitStatus(
+          ProcessStatus.COMPLETED,
+          `Database schema extraction completed. Processed ${processedTables}/${
+            tables.length
+          } tables. Failed tables: ${
+            failedTables.length > 0 ? failedTables.join(", ") : "none"
+          }`,
+          undefined,
+          { current: processedTables, total: tables.length }
+        );
 
-      await writer.write(
-        encoder.encode(
-          `data: ${JSON.stringify({
-            status: ProcessStatus.COMPLETED,
-            message: "Process completed",
-            data: { schemaText: allSchemaText },
-          })}\n\n`
-        )
-      );
+        await writer.write(
+          encoder.encode(
+            `data: ${JSON.stringify({
+              status: ProcessStatus.COMPLETED,
+              message: "Process completed",
+              data: {
+                schemaText: allSchemaText,
+                processedTables,
+                totalTables: tables.length,
+                failedTables,
+              },
+            })}\n\n`
+          )
+        );
+      }
     } catch (error: any) {
-      await emitStatus(
-        ProcessStatus.ERROR,
-        `Error processing database schema: ${error.message}`,
-        undefined
-      );
+      if (!signal.aborted) {
+        await emitStatus(
+          ProcessStatus.ERROR,
+          `Error processing database schema: ${error.message}`
+        );
+      }
     } finally {
       try {
         if (connection) {
@@ -158,12 +227,18 @@ export async function GET(request: NextRequest) {
       } catch (error) {
         console.error("Error closing database connection:", error);
       }
-      await writer.close();
+      try {
+        await writer.close();
+      } catch (error) {
+        console.warn("Error closing stream:", error);
+      }
     }
   };
 
-  processDBSchema();
-  // Update firestore (user)
+  processDBSchema().catch((error) => {
+    console.error("Unhandled error in processDBSchema:", error);
+  });
+
   const userRef = getUserDocRefById(userId);
   const hashedPassword = await hash(password, 10);
   await updateDoc(userRef, {
@@ -175,95 +250,14 @@ export async function GET(request: NextRequest) {
       password: hashedPassword,
       dbname,
     },
+  }).catch((error) => {
+    console.error("Error updating Firestore:", error);
   });
+
   return new Response(stream.readable, {
     headers: {
       "Content-Type": "text/event-stream",
       "Cache-Control": "no-cache",
     },
   });
-}
-
-export async function POST(request: NextRequest) {
-  try {
-    const {
-      userId,
-      hostname,
-      port,
-      username,
-      password,
-      dbname,
-      type,
-      embed = false,
-    } = await request.json();
-
-    // Koneksi ke database
-    const dbConnection = await createConnection({
-      userId,
-      hostname,
-      port,
-      username,
-      password,
-      dbname,
-      type,
-    });
-
-    // Ekstrak schema
-    const schemaText = await extractSchemaWithSamples(
-      dbConnection.connection,
-      dbConnection.type
-    );
-
-    // Embed data jika diperlukan
-    if (embed) {
-      const mem0Client = createMem0Client();
-      const tables = await getTables(
-        dbConnection.connection,
-        dbConnection.type
-      );
-
-      for (const table of tables) {
-        try {
-          const schema = await getTableSchema(
-            dbConnection.connection,
-            dbConnection.type,
-            table
-          );
-          const samples = await getSampleData(
-            dbConnection.connection,
-            dbConnection.type,
-            table
-          );
-          const tableData = schema + "\nSample Data:\n" + samples + "\n\n";
-
-          await mem0Client.add(tableData, {
-            agent_id: "agent-1",
-            metadata: {
-              category: "database",
-              tableName: table,
-            },
-          });
-        } catch (error) {
-          console.error(`Failed to embed table ${table}:`, error);
-        }
-      }
-    }
-
-    // Tutup koneksi
-    await closeConnection(dbConnection.connection, dbConnection.type);
-
-    return Response.json(
-      {
-        userId,
-        message: "Database schema has embeded!",
-      },
-      { status: 200 }
-    );
-  } catch (error: any) {
-    console.error("Error in DB schema extraction:", error);
-    return Response.json(
-      { error: error.message || "Failed to extract DB schema" },
-      { status: 500 }
-    );
-  }
 }

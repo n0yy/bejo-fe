@@ -24,6 +24,7 @@ export enum ProcessStatus {
   EMBEDDING = "embedding",
   COMPLETED = "completed",
   ERROR = "error",
+  WARNING = "warning",
 }
 
 export interface SSEMessage {

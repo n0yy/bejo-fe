@@ -8,6 +8,9 @@ import {
 } from "@/lib/db/schema";
 import { createMem0Client, embedTableData } from "@/lib/mem0/client";
 import { ProcessStatus, SSEMessage } from "@/lib/db/types";
+import { getUserById, getUserDocRefById } from "@/lib/firebase/user";
+import { updateDoc } from "firebase/firestore";
+import { hash } from "bcryptjs";
 
 export async function GET(request: NextRequest) {
   const searchParams = request.nextUrl.searchParams;
@@ -111,6 +114,7 @@ export async function GET(request: NextRequest) {
               `Error processing table ${table}: ${error.message}`,
               table
             );
+            continue;
           }
         }
       } else {
@@ -131,8 +135,6 @@ export async function GET(request: NextRequest) {
         }
       );
 
-      await closeConnection(connection, dbConnection.type);
-
       await writer.write(
         encoder.encode(
           `data: ${JSON.stringify({
@@ -149,16 +151,35 @@ export async function GET(request: NextRequest) {
         undefined
       );
     } finally {
+      try {
+        if (connection) {
+          await closeConnection(connection, type as any);
+        }
+      } catch (error) {
+        console.error("Error closing database connection:", error);
+      }
       await writer.close();
     }
   };
 
   processDBSchema();
+  // Update firestore (user)
+  const userRef = getUserDocRefById(userId);
+  const hashedPassword = await hash(password, 10);
+  await updateDoc(userRef, {
+    dbCreds: {
+      type,
+      host: hostname,
+      port,
+      username,
+      password: hashedPassword,
+      dbname,
+    },
+  });
   return new Response(stream.readable, {
     headers: {
       "Content-Type": "text/event-stream",
       "Cache-Control": "no-cache",
-      Connection: "keep-alive",
     },
   });
 }
@@ -216,7 +237,7 @@ export async function POST(request: NextRequest) {
           const tableData = schema + "\nSample Data:\n" + samples + "\n\n";
 
           await mem0Client.add(tableData, {
-            user_id: userId,
+            agent_id: "agent-1",
             metadata: {
               category: "database",
               tableName: table,
@@ -231,7 +252,13 @@ export async function POST(request: NextRequest) {
     // Tutup koneksi
     await closeConnection(dbConnection.connection, dbConnection.type);
 
-    return Response.json({ userId, schemaText }, { status: 200 });
+    return Response.json(
+      {
+        userId,
+        message: "Database schema has embeded!",
+      },
+      { status: 200 }
+    );
   } catch (error: any) {
     console.error("Error in DB schema extraction:", error);
     return Response.json(

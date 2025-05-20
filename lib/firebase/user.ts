@@ -6,9 +6,7 @@ import {
   getDocs,
   doc,
   getDoc,
-  updateDoc,
   serverTimestamp,
-  writeBatch,
   setDoc,
 } from "firebase/firestore";
 import type { User } from "@/lib/types/user";
@@ -16,6 +14,10 @@ import type { User } from "@/lib/types/user";
 type UserStatusUpdate = {
   email: string;
   status: "pending" | "approved" | "rejected";
+};
+
+export const getUserDocRefById = (userId: string) => {
+  return doc(db, "users", userId);
 };
 
 /**

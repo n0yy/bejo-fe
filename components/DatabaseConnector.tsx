@@ -22,11 +22,17 @@ import { ProcessStatus } from "@/lib/db/types";
 import { Checkbox } from "./ui/checkbox";
 
 export default function DatabaseConnector() {
+  const { data: session } = useSession();
   const [open, setOpen] = useState(false);
-
+  const dbIsConnected = session?.user.dbCreds;
+  console.log(`Database status connect: ${dbIsConnected}`);
+  console.log(session?.user);
   return (
     <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger className="flex items-center space-x-2 border px-4 py-1.5 rounded-lg hover:bg-accent hover:cursor-pointer transition">
+      <DialogTrigger
+        className="flex items-center space-x-2 border px-4 py-1.5 rounded-lg hover:bg-accent hover:cursor-pointer transition"
+        // disabled={dbIsConnected}
+      >
         <Database width={16} />
         <span className="text-sm">Connect to Database</span>
       </DialogTrigger>
@@ -124,7 +130,6 @@ function DatabaseForm({
   onSuccess,
 }: DatabaseFormProps) {
   const { data: session } = useSession();
-  const userId = session?.user?.id;
 
   const [connecting, setConnecting] = useState(false);
   const [connectionStatus, setConnectionStatus] = useState<{
@@ -150,7 +155,10 @@ function DatabaseForm({
   });
 
   const onSubmit = async (values: FormData) => {
-    if (!userId) {
+    console.log("[DatabaseConnector] Starting database connection...");
+
+    if (!session?.user?.id) {
+      console.log("[DatabaseConnector] Error: User not authenticated");
       setConnectionStatus({
         status: ProcessStatus.ERROR,
         message: "User not authenticated",
@@ -164,10 +172,13 @@ function DatabaseForm({
       message: "Connecting to database...",
     });
 
+    let eventSource: EventSource | null = null;
+
     try {
+      console.log("[DatabaseConnector] Creating SSE connection...");
       // For SSE connection
       const params = new URLSearchParams({
-        userId,
+        userId: session.user.id,
         hostname: values.hostname,
         port: values.port,
         username: values.username,
@@ -177,9 +188,7 @@ function DatabaseForm({
         embed: values.embed ? "true" : "false",
       });
 
-      const eventSource = new EventSource(
-        `/api/db/schema?${params.toString()}`
-      );
+      eventSource = new EventSource(`/api/db/schema?${params.toString()}`);
 
       eventSource.onmessage = (event) => {
         const data = JSON.parse(event.data);
@@ -192,19 +201,18 @@ function DatabaseForm({
         });
 
         if (data.status === ProcessStatus.COMPLETED) {
-          eventSource.close();
+          eventSource?.close();
           setConnecting(false);
-          setTimeout(() => {
-            onSuccess();
-          }, 1000);
+          localStorage.removeItem("initialMessage");
+          onSuccess();
         } else if (data.status === ProcessStatus.ERROR) {
-          eventSource.close();
+          eventSource?.close();
           setConnecting(false);
         }
       };
 
-      eventSource.onerror = () => {
-        eventSource.close();
+      eventSource.onerror = (error) => {
+        eventSource?.close();
         setConnecting(false);
         setConnectionStatus({
           status: ProcessStatus.ERROR,
@@ -212,6 +220,7 @@ function DatabaseForm({
         });
       };
     } catch (error) {
+      eventSource?.close();
       setConnecting(false);
       setConnectionStatus({
         status: ProcessStatus.ERROR,
@@ -262,7 +271,13 @@ function DatabaseForm({
         </div>
       ) : (
         <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-3">
+          <form
+            onSubmit={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+            }}
+            className="space-y-3"
+          >
             <FormField
               control={form.control}
               name="hostname"
@@ -358,7 +373,15 @@ function DatabaseForm({
               )}
             />
 
-            <Button className="w-full mt-2" type="submit">
+            <Button
+              className="w-full mt-2"
+              type="button"
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                form.handleSubmit(onSubmit)(e);
+              }}
+            >
               🚀 Connect to {dbLabel}
             </Button>
           </form>

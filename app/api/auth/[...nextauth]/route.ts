@@ -4,6 +4,24 @@ import CredentialsProvider from "next-auth/providers/credentials";
 import { getUserByEmail } from "@/lib/firebase/user";
 import { compare } from "bcryptjs";
 
+interface FirebaseUser {
+  id: string;
+  email: string;
+  name: string;
+  division: string;
+  role: string;
+  status: string;
+  password: string;
+  dbCreds?: {
+    type: string;
+    host: string;
+    port: string;
+    username: string;
+    password: string;
+    dbname: string;
+  };
+}
+
 declare module "next-auth" {
   interface User {
     id: string;
@@ -11,6 +29,14 @@ declare module "next-auth" {
     name: string;
     division: string;
     role: string;
+    dbCreds?: {
+      type: string;
+      host: string;
+      port: string;
+      username: string;
+      password: string;
+      dbname: string;
+    };
   }
 
   interface Session {
@@ -18,6 +44,14 @@ declare module "next-auth" {
       id: string;
       division: string;
       role: string;
+      dbCreds?: {
+        type: string;
+        host: string;
+        port: string;
+        username: string;
+        password: string;
+        dbname: string;
+      };
     };
   }
 }
@@ -27,6 +61,14 @@ declare module "next-auth/jwt" {
     id: string;
     division: string;
     role: string;
+    dbCreds?: {
+      type: string;
+      host: string;
+      port: string;
+      username: string;
+      password: string;
+      dbname: string;
+    };
   }
 }
 
@@ -44,7 +86,9 @@ export const authOptions: NextAuthOptions = {
             throw new Error("Missing credentials");
           }
 
-          const user = await getUserByEmail(credentials.email);
+          const user = (await getUserByEmail(
+            credentials.email
+          )) as FirebaseUser;
           if (!user) {
             throw new Error("User not found");
           }
@@ -64,6 +108,7 @@ export const authOptions: NextAuthOptions = {
             name: user.name,
             division: user.division,
             role: user.role,
+            dbCreds: user.dbCreds,
           };
         } catch (error) {
           console.error("Authorization error:", error);
@@ -82,6 +127,7 @@ export const authOptions: NextAuthOptions = {
         token.id = user.id;
         token.division = user.division;
         token.role = user.role;
+        token.dbCreds = user.dbCreds;
       }
       return token;
     },
@@ -90,6 +136,7 @@ export const authOptions: NextAuthOptions = {
         session.user.id = token.id;
         session.user.division = token.division;
         session.user.role = token.role;
+        session.user.dbCreds = token.dbCreds;
       }
       return session;
     },

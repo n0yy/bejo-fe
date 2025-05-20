@@ -26,6 +26,7 @@ export default function ChatInterface() {
   const inputRef = useRef<HTMLInputElement>(null);
 
   const getResponse = async (message: string) => {
+    console.log("[AskPage] Getting response for message:", message);
     setLoading(true);
 
     // Tambahkan pesan pengguna ke daftar pesan terlebih dahulu
@@ -46,6 +47,7 @@ export default function ChatInterface() {
     setPendingMessage(pendingAssistantMessage);
 
     try {
+      console.log("[AskPage] Sending request to API...");
       const response = await fetch(
         `${process.env.NEXT_PUBLIC_API_URL}/ask/${uuid}`,
         {
@@ -57,6 +59,7 @@ export default function ChatInterface() {
         }
       );
       const data = await response.json();
+      console.log("[AskPage] Received response from API:", data);
 
       // Buat objek pesan baru dari respons API
       const assistantMessage: Message = {
@@ -69,7 +72,7 @@ export default function ChatInterface() {
       setPendingMessage(null);
       setMessages((prevMessages) => [...prevMessages, assistantMessage]);
     } catch (error) {
-      console.error(error);
+      console.error("[AskPage] Error getting response:", error);
       // Jika error, hapus pesan placeholder assistant
       setPendingMessage(null);
     } finally {
@@ -83,10 +86,15 @@ export default function ChatInterface() {
   }, [messages, pendingMessage]);
 
   useEffect(() => {
+    console.log("[AskPage] Checking for initial message...");
     const initialInput = localStorage.getItem("initialMessage");
+    console.log("[AskPage] Initial message from localStorage:", initialInput);
+
     if (initialInput) {
+      console.log("[AskPage] Found initial message, sending to API...");
       getResponse(initialInput);
       // Hapus item dari localStorage agar tidak dipanggil lagi saat refresh
+      console.log("[AskPage] Removing initial message from localStorage");
       localStorage.removeItem("initialMessage");
     }
   }, [uuid]);

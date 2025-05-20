@@ -12,7 +12,7 @@ export async function middleware(req: NextRequest) {
     }
 
     if (token.role !== "admin") {
-      return NextResponse.redirect(new URL("/unauthorized", req.url));
+      return NextResponse.redirect(new URL("/not-found", req.url));
     }
   }
 

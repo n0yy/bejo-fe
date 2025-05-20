@@ -50,20 +50,18 @@ export default function Navbar() {
   return (
     <>
       <nav className="py-5 px-4 md:px-10 flex items-center justify-between fixed top-0 left-0 right-0 z-10 bg-white/10 dark:bg-black/10  backdrop-blur-sm">
-        <div className="flex items-center justify-center space-x-2">
-          <Link href="/">
-            <Image
-              src="/logo.png"
-              width={100}
-              height={100}
-              alt="Logo"
-              className={theme === "dark" ? "invert" : ""}
-            />
-            {session?.user?.role === "admin" && (
-              <Badge variant={"outline"}>Admin</Badge>
-            )}
-          </Link>
-        </div>
+        <Link href="/" className="flex items-center justify-center space-x-2">
+          <Image
+            src="/logo.png"
+            width={100}
+            height={100}
+            alt="Logo"
+            className={theme === "dark" ? "invert" : ""}
+          />
+          {session?.user?.role === "admin" && (
+            <Badge variant={"outline"}>Admin</Badge>
+          )}
+        </Link>
         <div>
           <ul className="flex items-center gap-3 md:gap-5">
             <li className="flex items-center gap-2">

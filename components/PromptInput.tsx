@@ -16,6 +16,15 @@ export default function PromptInput() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSubmitting(true);
+
+    // Cek apakah ada pesan di localStorage
+    const existingMessage = localStorage.getItem("initialMessage");
+
+    if (existingMessage) {
+      localStorage.removeItem("initialMessage");
+    }
+
+    console.log("[PromptInput] Creating new thread...");
     const response = await fetch(`/api/ask`, {
       method: "POST",
       headers: {
@@ -23,17 +32,20 @@ export default function PromptInput() {
       },
       body: JSON.stringify({ userId: session?.user?.id }),
     });
+
     const { threadId } = await response.json();
+
     if (threadId) {
       localStorage.setItem("initialMessage", prompt);
       router.push(`ask/${threadId}`);
     } else {
+      console.error("[PromptInput] Failed to create thread");
       return <div>Something went wrong in the session</div>;
     }
   };
 
   return (
-    <div className="w-full max-w-4xl mx-auto mt-3 bg-transparent shadow-md dark:shadow-yellow-200 rounded-lg">
+    <div className="w-full max-w-4xl mx-auto mt-3 shadow-md dark:shadow-yellow-200 rounded-lg bg-transparent">
       <form onSubmit={handleSubmit} className="space-y-2">
         <fieldset className="flex flex-col border border-input rounded-xl shadow focus-within:ring-1 focus-within:ring-ring focus-within:border-ring transition-all duration-200 bg-white dark:invert">
           <textarea

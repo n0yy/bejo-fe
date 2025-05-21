@@ -43,7 +43,7 @@ export function AppSidebar() {
     <Sidebar>
       <SidebarHeader>
         <SidebarMenu>
-          <SidebarMenuItem className="flex items-center ">
+          <SidebarMenuItem className="flex items-center w-full">
             <Link href="/" className="flex items-center justify-between">
               <Image
                 src="/bejo.png"
@@ -53,7 +53,7 @@ export function AppSidebar() {
                 className="dark:invert"
               />
               <div>
-                <span className="text-xl font-bold mr-14">Bejo AI</span>
+                <span className="text-xl font-bold mr-3">Bejo AI</span>
                 <Badge variant={"outline"} className="mt-1">
                   Admin
                 </Badge>
@@ -86,17 +86,34 @@ export function AppSidebar() {
             <SidebarMenu>
               <SidebarMenuItem>
                 <SidebarMenuButton>
-                  <Link
-                    href="/knowledge"
-                    className="flex items-center space-x-2"
-                  >
-                    <Brain className="h-4 w-4" />
-                    <span>Knowledge</span>
-                  </Link>
+                  <Brain className="h-4 w-4" />
+                  <span>Knowledge</span>
                 </SidebarMenuButton>
                 <SidebarMenuSub>
                   <SidebarMenuSubItem>
                     <SidebarMenuSubButton>Add</SidebarMenuSubButton>
+                    <SidebarMenuSub>
+                      <Link href="/dashboard/knowledge/add/control-field">
+                        <SidebarMenuButton className="text-slate-500">
+                          Level 1: Control & Field
+                        </SidebarMenuButton>
+                      </Link>
+                      <Link href="/dashboard/knowledge/add/supervisory">
+                        <SidebarMenuButton className="text-slate-500">
+                          Level 2: Supervisory
+                        </SidebarMenuButton>
+                      </Link>
+                      <Link href="/dashboard/knowledge/add/planning">
+                        <SidebarMenuButton className="text-slate-500">
+                          Level 3: Planning
+                        </SidebarMenuButton>
+                      </Link>
+                      <Link href="/dashboard/knowledge/add/management">
+                        <SidebarMenuButton className="text-slate-500">
+                          Level 4: Management
+                        </SidebarMenuButton>
+                      </Link>
+                    </SidebarMenuSub>
                   </SidebarMenuSubItem>
                   <SidebarMenuSubItem>
                     <SidebarMenuSubButton>Delete</SidebarMenuSubButton>

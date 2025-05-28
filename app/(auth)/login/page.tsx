@@ -59,7 +59,7 @@ export default function LoginPage() {
       setError(errorParam);
       toast.error(errorMessageMap[errorParam] || errorMessageMap.default);
     }
-  }, [searchParams, status]);
+  }, [searchParams, status, errorMessageMap]);
 
   if (error) {
     toast.error(errorMessageMap[error] || errorMessageMap.default);

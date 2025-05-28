@@ -132,6 +132,8 @@ export function DataTable({ data, onSuccess }: DataTableProps) {
                 alt={name || "User Avatar"}
                 className="w-6 h-6 sm:w-8 sm:h-8 rounded-full border border-gray-200"
                 loading="lazy"
+                width={50}
+                height={50}
               />
               <span className="text-sm sm:text-base">{name}</span>
             </div>

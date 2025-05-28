@@ -38,7 +38,6 @@ export default function ChatInterface() {
       timestamp: new Date().toISOString(),
     };
 
-    // Tambahkan placeholder pesan assistant yang sedang loading
     const pendingAssistantMessage: Message = {
       role: "assistant",
       response: "",
@@ -95,10 +94,9 @@ export default function ChatInterface() {
 
     if (initialInput) {
       getResponse(initialInput);
-      // Hapus item dari localStorage agar tidak dipanggil lagi saat refresh
       localStorage.removeItem("initialMessage");
     }
-  }, [uuid, status]);
+  }, [uuid, status, getResponse]);
 
   const handleSend = async (prompt: string) => {
     if (!prompt.trim() || loading) return;

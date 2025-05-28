@@ -5,6 +5,7 @@ export interface User {
   name: string;
   division: string;
   role?: string;
+  category?: "1" | "2" | "3" | "4";
   status: "pending" | "approved" | "rejected";
   createdAt?: any;
   dbCreds?: {

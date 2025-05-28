@@ -49,6 +49,7 @@
     "oci-sdk": "^2.109.0",
     "oci-secrets": "^2.109.0",
     "oracledb": "^6.8.0",
+    "pinata": "^2.3.0",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
     "react-drag-drop-files": "^3.0.1",

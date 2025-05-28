@@ -63,7 +63,7 @@ export default function Navbar() {
         </Link>
         <div>
           <ul className="flex items-center gap-3 md:gap-5">
-            <li className="flex items-center gap-2">
+            <li className="flex items-center gap-2 mb-1">
               <Switch
                 id="dark-mode"
                 className="hover:cursor-pointer"
@@ -88,7 +88,7 @@ export default function Navbar() {
               </Label>
             </li>
             <li
-              className="hover:cursor-pointer p-2 hover:bg-accent rounded-full transition-colors"
+              className="hover:cursor-pointer p-2 hover:bg-accent rounded-full transition-colors mb-1"
               onClick={() => setHistoryModal(!historyModal)}
             >
               <ListRestart className="h-5 w-5" />

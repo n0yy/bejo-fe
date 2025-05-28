@@ -217,7 +217,7 @@ export default function RegisterPage() {
               htmlFor="terms"
               className="text-sm font-medium text-slate-600 leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
             >
-              I make sure all the data is valid
+              I ensure that all the data is valid.
             </label>
           </div>
           <Button

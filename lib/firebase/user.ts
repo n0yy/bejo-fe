@@ -33,6 +33,7 @@ export async function getUsers(): Promise<User[]> {
     password: doc.data().password || "",
     division: doc.data().division || "",
     status: doc.data().status || "pending",
+    category: doc.data().category || null,
     dbCreds: doc.data().dbCreds || null,
     createdAt: toISODateString(doc.data().createdAt),
   }));
@@ -61,6 +62,7 @@ export async function getUserByEmail(email: string): Promise<User | null> {
     role: doc.data().role || "user",
     password: doc.data().password || "",
     division: doc.data().division || "",
+    category: doc.data().category || null,
     status: doc.data().status || "pending",
     dbCreds: doc.data().dbCreds || null,
     createdAt: toISODateString(doc.data().createdAt),
@@ -86,6 +88,8 @@ export async function getUserById(userId: string): Promise<User | null> {
     name: data.name || "",
     division: data.division || "",
     status: data.status || "pending",
+    role: data.role || "user",
+    category: data.category || null,
     dbCreds: data.dbCreds || null,
     createdAt: toISODateString(data.createdAt),
   };
@@ -123,20 +127,34 @@ export async function updateUserDbCreds(
  * @throws Error if updates are invalid or batch fails
  */
 export async function updateUserStatuses(
-  updates: { userId: string; status: User["status"] }[]
+  updates: {
+    userId: string;
+    status: User["status"];
+    category?: User["category"];
+    role?: User["role"];
+  }[]
 ): Promise<void> {
   if (!updates?.length) throw new Error("No updates provided");
 
   const validStatuses: User["status"][] = ["approved", "pending", "rejected"];
   const batch = writeBatch(db);
 
-  for (const { userId, status } of updates) {
+  for (const { userId, status, category, role } of updates) {
     if (!userId) throw new Error("User ID is required");
     if (!validStatuses.includes(status))
       throw new Error(`Invalid status: ${status}`);
 
     const userRef = doc(db, "users", userId);
-    batch.update(userRef, { status });
+    const updateData: any = { status };
+    if (category) {
+      updateData.category = category;
+    }
+
+    if (role) {
+      updateData.role = role;
+    }
+
+    batch.update(userRef, updateData);
   }
 
   try {

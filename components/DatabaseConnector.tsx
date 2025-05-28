@@ -35,7 +35,7 @@ export default function DatabaseConnector() {
       <DialogTrigger
         className={`${
           !!session?.user?.dbCreds && "bg-green-100 hover:bg-green-100"
-        } flex items-center space-x-2 border px-4 py-1.5 rounded-lg hover:bg-accent hover:cursor-pointer transition-all duration-200`}
+        } flex items-center space-x-2 border px-4 py-1.5 rounded-lg hover:bg-accent hover:cursor-pointer transition-all duration-200 scale-90`}
         disabled={!!session?.user?.dbCreds}
       >
         {!!session?.user?.dbCreds ? (

@@ -1,3 +1,5 @@
+"use client";
+
 import { useState } from "react";
 import { ArrowBigUpDash, Loader2 } from "lucide-react";
 import { useRouter } from "next/navigation";
@@ -37,6 +39,7 @@ export default function PromptInput() {
 
     if (threadId) {
       localStorage.setItem("initialMessage", prompt);
+      localStorage.setItem("threadId", threadId);
       router.push(`ask/${threadId}`);
     } else {
       console.error("[PromptInput] Failed to create thread");
@@ -45,7 +48,7 @@ export default function PromptInput() {
   };
 
   return (
-    <div className="w-full max-w-4xl mx-auto mt-3 shadow-md dark:shadow-yellow-200 rounded-lg bg-transparent">
+    <div className="w-11/12 max-w-4xl mx-auto mt-3  dark:shadow-yellow-200 rounded-tr-lg rounded-br-lg md:rounded-lg bg-transparent absolute md:relative bottom-5 shadow-xl md:shadow-md ">
       <form onSubmit={handleSubmit} className="space-y-2">
         <fieldset className="flex flex-col border border-input rounded-xl shadow focus-within:ring-1 focus-within:ring-ring focus-within:border-ring transition-all duration-200 bg-white dark:invert">
           <textarea
@@ -54,10 +57,22 @@ export default function PromptInput() {
             placeholder="Tanyakan apapun di sini..."
             className="min-h-28 focus:ring-0 focus:outline-none border-0 bg-transparent p-3 resize-none dark:invert"
             disabled={isSubmitting}
+            onKeyDown={(e) => {
+              const isMobile =
+                typeof window !== "undefined" &&
+                /Mobi|Android/i.test(navigator.userAgent);
+              if (!isMobile && e.key === "Enter" && !e.shiftKey) {
+                e.preventDefault();
+                const form = e.currentTarget.form;
+                if (form) {
+                  form.requestSubmit();
+                }
+              }
+            }}
           />
 
           <div className="flex items-center justify-between p-2 border-t border-input">
-            <div className="flex items-center space-x-2">
+            <div className="flex items-center space-x-0 md:space-x-2 ">
               <ModelSelector value={model} onChange={setModel} />
               <DatabaseConnector />
             </div>

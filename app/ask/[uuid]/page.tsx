@@ -8,10 +8,11 @@ import { useParams } from "next/navigation";
 import Markdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import Navbar from "@/components/Navbar";
+import { useSession } from "next-auth/react";
 
 interface Message {
   role: "user" | "assistant";
-  content: string;
+  response: string;
   timestamp: string;
 }
 
@@ -22,24 +23,25 @@ export default function ChatInterface() {
   const [input, setInput] = useState("");
   const [pendingMessage, setPendingMessage] = useState<Message | null>(null);
 
+  const { data: session, status } = useSession();
+
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
   const getResponse = async (message: string) => {
-    console.log("[AskPage] Getting response for message:", message);
     setLoading(true);
 
     // Tambahkan pesan pengguna ke daftar pesan terlebih dahulu
     const userMessage: Message = {
       role: "user",
-      content: message,
+      response: message,
       timestamp: new Date().toISOString(),
     };
 
     // Tambahkan placeholder pesan assistant yang sedang loading
     const pendingAssistantMessage: Message = {
       role: "assistant",
-      content: "",
+      response: "",
       timestamp: new Date().toISOString(),
     };
 
@@ -47,24 +49,27 @@ export default function ChatInterface() {
     setPendingMessage(pendingAssistantMessage);
 
     try {
-      console.log("[AskPage] Sending request to API...");
       const response = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL}/ask/${uuid}`,
+        `${process.env.NEXT_PUBLIC_API_URL}/api/v1/chat`,
         {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
           },
-          body: JSON.stringify({ input: message }),
+          body: JSON.stringify({
+            input: message,
+            category: 1,
+            user_id: session?.user?.id,
+            thread_id: uuid,
+          }),
         }
       );
       const data = await response.json();
-      console.log("[AskPage] Received response from API:", data);
 
       // Buat objek pesan baru dari respons API
       const assistantMessage: Message = {
         role: "assistant",
-        content: data.answer || "",
+        response: data.response || "",
         timestamp: new Date().toISOString(),
       };
 
@@ -83,21 +88,17 @@ export default function ChatInterface() {
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [messages, pendingMessage]);
+  }, [messages, pendingMessage, status]);
 
   useEffect(() => {
-    console.log("[AskPage] Checking for initial message...");
     const initialInput = localStorage.getItem("initialMessage");
-    console.log("[AskPage] Initial message from localStorage:", initialInput);
 
     if (initialInput) {
-      console.log("[AskPage] Found initial message, sending to API...");
       getResponse(initialInput);
       // Hapus item dari localStorage agar tidak dipanggil lagi saat refresh
-      console.log("[AskPage] Removing initial message from localStorage");
       localStorage.removeItem("initialMessage");
     }
-  }, [uuid]);
+  }, [uuid, status]);
 
   const handleSend = async (prompt: string) => {
     if (!prompt.trim() || loading) return;
@@ -144,7 +145,7 @@ export default function ChatInterface() {
                   )}
                   <div className="text-slate-900 prose prose-sm">
                     <Markdown remarkPlugins={[remarkGfm]}>
-                      {message.content}
+                      {message.response}
                     </Markdown>
                     {message.role === "assistant" && (
                       <span className="block text-xs mt-1 text-start text-slate-400">

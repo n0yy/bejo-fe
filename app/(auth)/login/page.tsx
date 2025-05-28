@@ -59,23 +59,21 @@ export default function LoginPage() {
       setError(errorParam);
       toast.error(errorMessageMap[errorParam] || errorMessageMap.default);
     }
-  }, [searchParams]);
+  }, [searchParams, status]);
 
-  console.log(error);
   if (error) {
     toast.error(errorMessageMap[error] || errorMessageMap.default);
   }
 
   useEffect(() => {
     if (status === "authenticated") {
-      console.log(session);
       if (session?.user?.role !== "admin") {
         router.push("/");
       } else {
         router.push("/dashboard");
       }
     }
-  }, [router, session]);
+  }, [router, session, status]);
 
   async function onSubmit(values: LoginFormValues) {
     try {

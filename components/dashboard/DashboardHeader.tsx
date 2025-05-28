@@ -28,7 +28,7 @@ export const DashboardHeader = ({
   breadcrumbs,
 }: DashboardHeaderProps) => {
   return (
-    <header>
+    <header className="p-2">
       <Breadcrumb>
         <BreadcrumbList>
           {breadcrumbs.map((item, index) => (

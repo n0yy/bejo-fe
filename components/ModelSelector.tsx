@@ -20,7 +20,7 @@ interface ModelSelectorProps {
 
 export default function ModelSelector({ value, onChange }: ModelSelectorProps) {
   return (
-    <div className="hover:bg-accent hover:rounded-md transition-all duration-200 px-1 border rounded-lg">
+    <div className="hover:bg-accent hover:rounded-md transition-all duration-200 px-1 border rounded-lg scale-90">
       <Select value={value} onValueChange={onChange}>
         <SelectTrigger className="cursor-pointer flex items-center border-0 bg-transparent focus:ring-0 focus:outline-none dark:text-white dark:invert">
           <SelectValue placeholder="Select model" />

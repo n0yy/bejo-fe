@@ -1,4 +1,5 @@
 import NextAuth from "next-auth";
+
 import type { NextAuthOptions } from "next-auth";
 import CredentialsProvider from "next-auth/providers/credentials";
 import { getUserByEmail } from "@/lib/firebase/user";
@@ -53,7 +54,6 @@ export const authOptions: NextAuthOptions = {
             throw new Error("Invalid password");
           }
 
-          // Restrukturisasi dbCreds sesuai dengan format yang diharapkan
           return {
             id: user.id,
             email: user.email,
@@ -122,6 +122,5 @@ export const authOptions: NextAuthOptions = {
   debug: process.env.NODE_ENV === "development",
 };
 
-const handler = NextAuth(authOptions);
-
-export { handler as GET, handler as POST };
+const handlers = NextAuth(authOptions);
+export { handlers as GET, handlers as POST };

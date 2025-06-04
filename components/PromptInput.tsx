@@ -48,7 +48,7 @@ export default function PromptInput() {
   };
 
   return (
-    <div className="w-11/12 max-w-4xl mx-auto mt-3  dark:shadow-yellow-200 rounded-tr-lg rounded-br-lg md:rounded-lg bg-transparent absolute md:relative bottom-5 shadow-xl md:shadow-md ">
+    <div className="w-11/12 max-w-4xl mx-auto mt-7 dark:shadow-yellow-200 rounded-tr-lg rounded-br-lg md:rounded-lg bg-transparent absolute md:relative bottom-5 shadow-xl md:shadow-md ">
       <form onSubmit={handleSubmit} className="space-y-2">
         <fieldset className="flex flex-col border border-input rounded-xl shadow focus-within:ring-1 focus-within:ring-ring focus-within:border-ring transition-all duration-200 bg-white dark:invert">
           <textarea

@@ -10,7 +10,7 @@ import {
   BreadcrumbPage,
   BreadcrumbSeparator,
 } from "@/components/ui/breadcrumb";
-import { BarChart3, Home } from "lucide-react";
+import { Home } from "lucide-react";
 
 interface BreadcrumbItem {
   label: string;
@@ -28,7 +28,7 @@ export const DashboardHeader = ({
   breadcrumbs,
 }: DashboardHeaderProps) => {
   return (
-    <header className="p-2">
+    <header className="p-2 md:p-0">
       <Breadcrumb>
         <BreadcrumbList>
           {breadcrumbs.map((item, index) => (

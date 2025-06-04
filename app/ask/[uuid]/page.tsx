@@ -9,6 +9,13 @@ import Markdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import Navbar from "@/components/Navbar";
 import { useSession } from "next-auth/react";
+import {
+  ChatHistory,
+  storeChatHistory,
+  subscribeToChatHistory,
+  getChatHistory,
+} from "@/lib/firebase/chat-history";
+import { toast } from "react-hot-toast";
 
 interface Message {
   role: "user" | "assistant";
@@ -22,16 +29,52 @@ export default function ChatInterface() {
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
   const [pendingMessage, setPendingMessage] = useState<Message | null>(null);
+  const [isSubscribed, setIsSubscribed] = useState(false);
 
   const { data: session, status } = useSession();
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
+  // Subscribe to real-time updates
+  useEffect(() => {
+    if (uuid && !isSubscribed) {
+      const unsubscribe = subscribeToChatHistory(uuid as string, (history) => {
+        if (history) {
+          setMessages(
+            history.messages.map((msg) => ({
+              role: msg.role === "user" ? "user" : "assistant",
+              response: msg.content,
+              timestamp: new Date(msg.timestamp).toISOString(),
+            }))
+          );
+        }
+      });
+      setIsSubscribed(true);
+      return () => unsubscribe();
+    }
+  }, [uuid, isSubscribed]);
+
+  useEffect(() => {
+    const fetchHistory = async () => {
+      if (!uuid) return;
+      const history = await getChatHistory(uuid as string);
+      if (history && Array.isArray(history.messages)) {
+        setMessages(
+          history.messages.map((msg) => ({
+            role: msg.role === "user" ? "user" : "assistant",
+            response: msg.content,
+            timestamp: new Date(msg.timestamp).toISOString(),
+          }))
+        );
+      }
+    };
+    fetchHistory();
+  }, [uuid]);
+
   const getResponse = async (message: string) => {
     setLoading(true);
 
-    // Tambahkan pesan pengguna ke daftar pesan terlebih dahulu
     const userMessage: Message = {
       role: "user",
       response: message,
@@ -44,7 +87,8 @@ export default function ChatInterface() {
       timestamp: new Date().toISOString(),
     };
 
-    setMessages((prevMessages) => [...prevMessages, userMessage]);
+    // Optimistic update
+    setMessages((prev) => [...prev, userMessage]);
     setPendingMessage(pendingAssistantMessage);
 
     try {
@@ -65,20 +109,39 @@ export default function ChatInterface() {
       );
       const data = await response.json();
 
-      // Buat objek pesan baru dari respons API
       const assistantMessage: Message = {
         role: "assistant",
         response: data.response || "",
         timestamp: new Date().toISOString(),
       };
 
-      // Update pesan setelah respons diterima
       setPendingMessage(null);
-      setMessages((prevMessages) => [...prevMessages, assistantMessage]);
+      setMessages((prev) => [...prev, assistantMessage]);
+
+      // Store chat history
+      if (session?.user?.id) {
+        try {
+          const chatHistory: ChatHistory = {
+            userId: session.user.id,
+            threadId: uuid as string,
+            messages: [...messages, userMessage, assistantMessage].map(
+              (msg) => ({
+                role: msg.role,
+                content: msg.response,
+                timestamp: new Date(msg.timestamp).getTime(),
+              })
+            ),
+          };
+          await storeChatHistory(chatHistory);
+        } catch (error) {
+          console.error("[ChatHistory] Failed to store chat history:", error);
+          toast.error("Gagal menyimpan riwayat chat");
+        }
+      }
     } catch (error) {
       console.error("[AskPage] Error getting response:", error);
-      // Jika error, hapus pesan placeholder assistant
       setPendingMessage(null);
+      toast.error("Terjadi kesalahan saat mendapatkan respons");
     } finally {
       setLoading(false);
       setInput("");
@@ -125,10 +188,10 @@ export default function ChatInterface() {
                 }`}
               >
                 <div
-                  className={`px-6 py-3 rounded-xl ${
+                  className={`px-6 py-3 rounded-l-lg rounded-tr-lg ${
                     message.role === "user"
-                      ? "bg-slate-200 text-slate-800 max-w-lg"
-                      : " text-black w-full"
+                      ? "bg-slate-100 text-slate-800 max-w-lg"
+                      : "bg-white text-black w-full"
                   }`}
                 >
                   {message.role === "assistant" && (
@@ -141,12 +204,18 @@ export default function ChatInterface() {
                       />
                     </span>
                   )}
-                  <div className="text-slate-900 prose prose-sm">
+                  <div
+                    className={`${
+                      message.role === "assistant"
+                        ? "prose prose-sm md:prose-base max-w-none dark:prose-invert prose-headings:font-semibold prose-p:leading-relaxed prose-pre:bg-slate-50 prose-pre:border prose-pre:border-slate-200"
+                        : ""
+                    }`}
+                  >
                     <Markdown remarkPlugins={[remarkGfm]}>
                       {message.response}
                     </Markdown>
                     {message.role === "assistant" && (
-                      <span className="block text-xs mt-1 text-start text-slate-400">
+                      <span className="block text-xs mt-2 text-start text-slate-400">
                         {new Date(message.timestamp).toLocaleString("id-ID", {
                           hour: "2-digit",
                           minute: "2-digit",
@@ -161,7 +230,6 @@ export default function ChatInterface() {
               </div>
             ))}
 
-            {/* Pending message (loading) */}
             {pendingMessage && (
               <div className="flex justify-start">
                 <div className="px-6 py-3 rounded-xl text-black w-full">

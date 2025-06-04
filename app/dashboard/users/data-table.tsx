@@ -27,6 +27,7 @@ import {
 import toast from "react-hot-toast";
 import { updateUserStatuses } from "@/lib/firebase/user";
 import { useSession } from "next-auth/react";
+import Image from "next/image";
 
 interface DataTableProps {
   data: User[];
@@ -127,7 +128,7 @@ export function DataTable({ data, onSuccess }: DataTableProps) {
           )}`;
           return (
             <div className="flex items-center gap-2 sm:gap-3">
-              <img
+              <Image
                 src={avatarUrl}
                 alt={name || "User Avatar"}
                 className="w-6 h-6 sm:w-8 sm:h-8 rounded-full border border-gray-200"

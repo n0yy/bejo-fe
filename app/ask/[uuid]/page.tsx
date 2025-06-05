@@ -1,7 +1,7 @@
 "use client";
 
 import Image from "next/image";
-import React, { useState, useRef, useEffect } from "react";
+import React, { useState, useRef, useEffect, useCallback } from "react";
 import { Send } from "lucide-react";
 import { ImSpinner10 } from "react-icons/im";
 import { useParams } from "next/navigation";
@@ -72,80 +72,83 @@ export default function ChatInterface() {
     fetchHistory();
   }, [uuid]);
 
-  const getResponse = async (message: string) => {
-    setLoading(true);
+  const getResponse = useCallback(
+    async (message: string) => {
+      setLoading(true);
 
-    const userMessage: Message = {
-      role: "user",
-      response: message,
-      timestamp: new Date().toISOString(),
-    };
-
-    const pendingAssistantMessage: Message = {
-      role: "assistant",
-      response: "",
-      timestamp: new Date().toISOString(),
-    };
-
-    // Optimistic update
-    setMessages((prev) => [...prev, userMessage]);
-    setPendingMessage(pendingAssistantMessage);
-    try {
-      const response = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL}/api/v1/chat`,
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            input: message,
-            category: session?.user?.category,
-            user_id: session?.user?.id,
-            thread_id: uuid,
-          }),
-        }
-      );
-      const data = await response.json();
-
-      const assistantMessage: Message = {
-        role: "assistant",
-        response: data.response || "",
+      const userMessage: Message = {
+        role: "user",
+        response: message,
         timestamp: new Date().toISOString(),
       };
 
-      setPendingMessage(null);
-      setMessages((prev) => [...prev, assistantMessage]);
+      const pendingAssistantMessage: Message = {
+        role: "assistant",
+        response: "",
+        timestamp: new Date().toISOString(),
+      };
 
-      // Store chat history
-      if (session?.user?.id) {
-        try {
-          const chatHistory: ChatHistory = {
-            userId: session.user.id,
-            threadId: uuid as string,
-            messages: [...messages, userMessage, assistantMessage].map(
-              (msg) => ({
-                role: msg.role,
-                content: msg.response,
-                timestamp: new Date(msg.timestamp).getTime(),
-              })
-            ),
-          };
-          await storeChatHistory(chatHistory);
-        } catch (error) {
-          console.error("[ChatHistory] Failed to store chat history:", error);
-          toast.error("Gagal menyimpan riwayat chat");
+      // Optimistic update
+      setMessages((prev) => [...prev, userMessage]);
+      setPendingMessage(pendingAssistantMessage);
+      try {
+        const response = await fetch(
+          `${process.env.NEXT_PUBLIC_API_URL}/api/v1/chat`,
+          {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              input: message,
+              category: session?.user?.category,
+              user_id: session?.user?.id,
+              thread_id: uuid,
+            }),
+          }
+        );
+        const data = await response.json();
+
+        const assistantMessage: Message = {
+          role: "assistant",
+          response: data.response || "",
+          timestamp: new Date().toISOString(),
+        };
+
+        setPendingMessage(null);
+        setMessages((prev) => [...prev, assistantMessage]);
+
+        // Store chat history
+        if (session?.user?.id) {
+          try {
+            const chatHistory: ChatHistory = {
+              userId: session.user.id,
+              threadId: uuid as string,
+              messages: [...messages, userMessage, assistantMessage].map(
+                (msg) => ({
+                  role: msg.role,
+                  content: msg.response,
+                  timestamp: new Date(msg.timestamp).getTime(),
+                })
+              ),
+            };
+            await storeChatHistory(chatHistory);
+          } catch (error) {
+            console.error("[ChatHistory] Failed to store chat history:", error);
+            toast.error("Gagal menyimpan riwayat chat");
+          }
         }
+      } catch (error) {
+        console.error("[AskPage] Error getting response:", error);
+        setPendingMessage(null);
+        toast.error("Terjadi kesalahan saat mendapatkan respons");
+      } finally {
+        setLoading(false);
+        setInput("");
       }
-    } catch (error) {
-      console.error("[AskPage] Error getting response:", error);
-      setPendingMessage(null);
-      toast.error("Terjadi kesalahan saat mendapatkan respons");
-    } finally {
-      setLoading(false);
-      setInput("");
-    }
-  };
+    },
+    [uuid, session?.user?.id, session?.user?.category, messages]
+  );
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });

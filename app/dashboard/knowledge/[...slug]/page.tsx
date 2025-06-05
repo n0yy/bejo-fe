@@ -2,7 +2,8 @@
 
 import DashboardHeader from "@/components/dashboard/DashboardHeader";
 import FileUpload from "@/components/FileUploader";
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { notFound, useRouter } from "next/navigation";
 
 const data = [
   {
@@ -31,19 +32,47 @@ const data = [
   },
 ];
 
-export default function AddKnowledge({
-  params,
-}: {
-  params: { slug: string[] };
-}) {
+interface PageProps {
+  params: Promise<{ slug: string[] }>;
+}
+
+export default function AddKnowledge({ params }: PageProps) {
+  const router = useRouter();
   const [uploadProgress, setUploadProgress] = useState<{
     step: string;
     message: string;
     progress: number;
   } | null>(null);
 
-  const slug = params.slug;
+  const [resolvedParams, setResolvedParams] = useState<{
+    slug: string[];
+  } | null>(null);
+
+  useEffect(() => {
+    const resolveParams = async () => {
+      const resolved = await params;
+      setResolvedParams(resolved);
+    };
+    resolveParams();
+  }, [params]);
+
+  // Loading state while params are being resolved
+  if (!resolvedParams) {
+    return (
+      <div className="min-h-screen w-full flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
+          <p className="mt-2 text-gray-600">Loading...</p>
+        </div>
+      </div>
+    );
+  }
+
+  const slug = resolvedParams.slug;
   const categoryLevel = slug[1].split("-")[1];
+  if (parseInt(categoryLevel) < 1 || parseInt(categoryLevel) > 4) {
+    return notFound();
+  }
   const fullSlug = `/dashboard/knowledge/${slug.join("/")}`;
 
   const matched = data.find((item) => item.url === fullSlug);

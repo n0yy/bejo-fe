@@ -14,22 +14,53 @@ import {
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import Link from "next/link";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo, Suspense } from "react";
 import { signIn, useSession } from "next-auth/react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { FaSpinner } from "react-icons/fa";
 import { toast } from "sonner";
 
-// Schema untuk form login
 const loginFormSchema = z.object({
   email: z.string().email(),
   password: z.string().min(8),
 });
 
-// Type untuk form values
 type LoginFormValues = z.infer<typeof loginFormSchema>;
 
-export default function LoginPage() {
+type ErrorType =
+  | "CredentialsSignin"
+  | "AccountNotApproved"
+  | "InvalidCredentials"
+  | "AuthenticationFailed";
+
+function ErrorHandler() {
+  const searchParams = useSearchParams();
+
+  const errorMessageMap = useMemo(
+    () =>
+      ({
+        CredentialsSignin: "Invalid email or password.",
+        AccountNotApproved: "Your account is not yet approved.",
+        InvalidCredentials: "Invalid email or password.",
+        AuthenticationFailed: "Authentication failed. Please try again.",
+        default: "An unexpected error occurred. Please try again.",
+      } as Record<ErrorType | "default", string>),
+    []
+  );
+
+  useEffect(() => {
+    const errorParam = searchParams.get("error");
+    if (errorParam) {
+      toast.error(
+        errorMessageMap[errorParam as ErrorType] || errorMessageMap.default
+      );
+    }
+  }, [searchParams, errorMessageMap]);
+
+  return null;
+}
+
+function LoginForm() {
   const router = useRouter();
   const form = useForm<LoginFormValues>({
     resolver: zodResolver(loginFormSchema),
@@ -42,28 +73,17 @@ export default function LoginPage() {
   const { data: session, status } = useSession();
   const [isLoading, setIsLoading] = useState(false);
 
-  const searchParams = useSearchParams();
-  const [error, setError] = useState<string | null>(null);
-
-  const errorMessageMap: Record<string, string> = {
-    CredentialsSignin: "Invalid email or password.",
-    AccountNotApproved: "Your account is not yet approved.",
-    InvalidCredentials: "Invalid email or password.",
-    AuthenticationFailed: "Authentication failed. Please try again.",
-    default: "An unexpected error occurred. Please try again.",
-  };
-
-  useEffect(() => {
-    const errorParam = searchParams.get("error");
-    if (errorParam) {
-      setError(errorParam);
-      toast.error(errorMessageMap[errorParam] || errorMessageMap.default);
-    }
-  }, [searchParams, status, errorMessageMap]);
-
-  if (error) {
-    toast.error(errorMessageMap[error] || errorMessageMap.default);
-  }
+  const errorMessageMap = useMemo(
+    () =>
+      ({
+        CredentialsSignin: "Invalid email or password.",
+        AccountNotApproved: "Your account is not yet approved.",
+        InvalidCredentials: "Invalid email or password.",
+        AuthenticationFailed: "Authentication failed. Please try again.",
+        default: "An unexpected error occurred. Please try again.",
+      } as Record<ErrorType | "default", string>),
+    []
+  );
 
   useEffect(() => {
     if (status === "authenticated") {
@@ -86,8 +106,9 @@ export default function LoginPage() {
       });
 
       if (res?.error) {
-        // Errors will now be properly propagated from NextAuth
-        toast.error(errorMessageMap[res.error] || errorMessageMap.default);
+        toast.error(
+          errorMessageMap[res.error as ErrorType] || errorMessageMap.default
+        );
         return;
       }
 
@@ -151,5 +172,25 @@ export default function LoginPage() {
         </div>
       </Form>
     </>
+  );
+}
+
+function LoginPageFallback() {
+  return (
+    <div className="flex items-center justify-center min-h-screen">
+      <div className="text-center">
+        <FaSpinner className="animate-spin mx-auto mb-4 text-2xl" />
+        <p className="text-gray-600">Loading...</p>
+      </div>
+    </div>
+  );
+}
+
+export default function LoginPage() {
+  return (
+    <Suspense fallback={<LoginPageFallback />}>
+      <LoginForm />
+      <ErrorHandler />
+    </Suspense>
   );
 }

@@ -24,7 +24,7 @@ interface FirebaseUser {
   };
 }
 
-export const authOptions: NextAuthOptions = {
+const authOptions: NextAuthOptions = {
   providers: [
     CredentialsProvider({
       name: "Credentials",
@@ -122,5 +122,5 @@ export const authOptions: NextAuthOptions = {
   debug: process.env.NODE_ENV === "development",
 };
 
-const handlers = NextAuth(authOptions);
-export { handlers as GET, handlers as POST };
+const handler = NextAuth(authOptions);
+export { handler as GET, handler as POST };

@@ -11,7 +11,6 @@ const breadcrumbs = [
 
 export default async function UserManagement() {
   const data = await getUsers();
-  console.log(data);
   return (
     <div className="p-6 space-y-6">
       <DashboardHeader title="User Management" breadcrumbs={breadcrumbs} />

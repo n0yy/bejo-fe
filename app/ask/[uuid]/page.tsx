@@ -90,7 +90,6 @@ export default function ChatInterface() {
     // Optimistic update
     setMessages((prev) => [...prev, userMessage]);
     setPendingMessage(pendingAssistantMessage);
-
     try {
       const response = await fetch(
         `${process.env.NEXT_PUBLIC_API_URL}/api/v1/chat`,
@@ -101,7 +100,7 @@ export default function ChatInterface() {
           },
           body: JSON.stringify({
             input: message,
-            category: 1,
+            category: session?.user?.category,
             user_id: session?.user?.id,
             thread_id: uuid,
           }),

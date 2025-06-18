@@ -2,7 +2,7 @@
 
 import { Search } from "lucide-react";
 import React, { useEffect, useState } from "react";
-import { collection, query, where, getDocs, orderBy } from "firebase/firestore";
+import { collection, query, where, getDocs } from "firebase/firestore";
 import { db } from "@/lib/firebase/app";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
@@ -20,9 +20,9 @@ interface ChatHistoryItem {
 function getPreview(text: string, maxLength = 100) {
   // Hapus markdown dan link
   let clean = text
-    .replace(/\[(.*?)\]\((.*?)\)/g, "$1") // [teks](link) => teks
-    .replace(/[*_~`>#-]/g, "") // karakter markdown dasar
-    .replace(/!\[(.*?)\]\((.*?)\)/g, "") // gambar markdown
+    .replace(/\[(.*?)\]\((.*?)\)/g, "$1")
+    .replace(/[*_~`>#-]/g, "")
+    .replace(/!\[(.*?)\]\((.*?)\)/g, "")
     .replace(/\n/g, " ");
   if (clean.length > maxLength) {
     clean = clean.slice(0, maxLength) + "...";
@@ -42,16 +42,13 @@ export default function HistoryModal() {
       if (!session?.user?.id) return;
 
       try {
-        console.log("Fetching chat history for user:", session.user.id);
         const chatHistoryRef = collection(db, "chatHistory");
         const q = query(chatHistoryRef, where("userId", "==", session.user.id));
 
         const querySnapshot = await getDocs(q);
-        console.log("Query snapshot size:", querySnapshot.size);
 
         const history = querySnapshot.docs.map((doc) => {
           const data = doc.data();
-          console.log("Document data:", data);
           const messages = data.messages || [];
           return {
             threadId: doc.id,
@@ -62,7 +59,6 @@ export default function HistoryModal() {
           };
         });
 
-        console.log("Processed history:", history);
         setChatHistory(history);
       } catch (error) {
         console.error("Error fetching chat history:", error);

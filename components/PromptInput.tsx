@@ -74,7 +74,7 @@ export default function PromptInput() {
           <div className="flex items-center justify-between p-2 border-t border-input">
             <div className="flex items-center space-x-0 md:space-x-2 ">
               <ModelSelector value={model} onChange={setModel} />
-              <DatabaseConnector />
+              {/* <DatabaseConnector /> */}
             </div>
 
             <button

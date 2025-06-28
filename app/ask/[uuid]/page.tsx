@@ -26,7 +26,61 @@ interface Message {
 export default function ChatInterface() {
   const { uuid } = useParams();
   const [loading, setLoading] = useState(false);
-  const [messages, setMessages] = useState<Message[]>([]);
+  const [messages, setMessages] = useState<Message[]>([
+    {
+      role: "assistant",
+      response: `# Judul Utama
+
+Lorem ipsum dolor sit amet, consectetur adipiscing elit. **Suspendisse** nec justo vel odio dictum ultrices. *Curabitur* non urna id sem porta cursus.
+
+## Subjudul Kedua
+
+- List item pertama
+- List item kedua
+- List item ketiga
+
+### Subjudul Ketiga
+
+1. Langkah pertama
+2. Langkah kedua
+3. Langkah ketiga
+
+#### Kode Program
+
+\`\`\`javascript
+function helloWorld() {
+  console.log("Hello, Tailwind Typography!");
+}
+\`\`\`
+
+> “Ini adalah contoh kutipan. Cocok untuk menampilkan testimoni atau referensi.”
+
+---
+
+## Tabel Data
+
+| Nama    | Umur | Pekerjaan    |
+|---------|------|--------------|
+| Andi    | 25   | Developer    |
+| Budi    | 30   | Designer     |
+| Charlie | 28   | Product Lead |
+
+---
+
+## Gambar
+
+![Gambar Dummy](https://dummyjson.com/icon/emilys/128)
+
+---
+
+## Link
+
+Kunjungi [Tailwind Typography](https://tailwindcss.com/docs/typography-plugin) untuk dokumentasi lengkap.
+`,
+      timestamp: new Date().toISOString(),
+    },
+  ]);
+
   const [input, setInput] = useState("");
   const [pendingMessage, setPendingMessage] = useState<Message | null>(null);
   const [isSubscribed, setIsSubscribed] = useState(false);
@@ -209,7 +263,7 @@ export default function ChatInterface() {
                   <div
                     className={`${
                       message.role === "assistant"
-                        ? "prose prose-sm md:prose-base max-w-none dark:prose-invert prose-headings:font-semibold prose-p:leading-relaxed prose-pre:bg-slate-50 prose-pre:border prose-pre:border-slate-200"
+                        ? "prose max-w-none dark:prose-invert"
                         : ""
                     }`}
                   >

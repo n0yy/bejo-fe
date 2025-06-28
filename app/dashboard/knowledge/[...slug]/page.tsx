@@ -37,7 +37,6 @@ interface PageProps {
 }
 
 export default function AddKnowledge({ params }: PageProps) {
-  const router = useRouter();
   const [uploadProgress, setUploadProgress] = useState<{
     step: string;
     message: string;

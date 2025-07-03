@@ -96,7 +96,7 @@ export function AppSidebar() {
                       {session?.user?.role === "admin" && (
                         <div>
                           {session?.user?.category === "1" && (
-                            <Link href="/dashboard/knowledge/add/level-1">
+                            <Link href="/dashboard/knowledge/add/1">
                               <SidebarMenuButton className="text-slate-500">
                                 Level 1: Control & Field
                               </SidebarMenuButton>
@@ -104,12 +104,12 @@ export function AppSidebar() {
                           )}
                           {session?.user?.category === "2" && (
                             <>
-                              <Link href="/dashboard/knowledge/add/level-1">
+                              <Link href="/dashboard/knowledge/add/1">
                                 <SidebarMenuButton className="text-slate-500">
                                   Level 1: Control & Field
                                 </SidebarMenuButton>
                               </Link>
-                              <Link href="/dashboard/knowledge/add/level-2">
+                              <Link href="/dashboard/knowledge/add/2">
                                 <SidebarMenuButton className="text-slate-500">
                                   Level 2: Supervisory
                                 </SidebarMenuButton>
@@ -118,17 +118,17 @@ export function AppSidebar() {
                           )}
                           {session?.user?.category === "3" && (
                             <>
-                              <Link href="/dashboard/knowledge/add/level-1">
+                              <Link href="/dashboard/knowledge/add/1">
                                 <SidebarMenuButton className="text-slate-500">
                                   Level 1: Control & Field
                                 </SidebarMenuButton>
                               </Link>
-                              <Link href="/dashboard/knowledge/add/level-2">
+                              <Link href="/dashboard/knowledge/add/2">
                                 <SidebarMenuButton className="text-slate-500">
                                   Level 2: Supervisory
                                 </SidebarMenuButton>
                               </Link>
-                              <Link href="/dashboard/knowledge/add/level-3">
+                              <Link href="/dashboard/knowledge/add/3">
                                 <SidebarMenuButton className="text-slate-500">
                                   Level 3: Planning
                                 </SidebarMenuButton>
@@ -139,22 +139,22 @@ export function AppSidebar() {
                       )}
                       {session?.user?.category === "4" && (
                         <>
-                          <Link href="/dashboard/knowledge/add/level-1">
+                          <Link href="/dashboard/knowledge/add/1">
                             <SidebarMenuButton className="text-slate-500">
                               Level 1: Control & Field
                             </SidebarMenuButton>
                           </Link>
-                          <Link href="/dashboard/knowledge/add/level-2">
+                          <Link href="/dashboard/knowledge/add/2">
                             <SidebarMenuButton className="text-slate-500">
                               Level 2: Supervisory
                             </SidebarMenuButton>
                           </Link>
-                          <Link href="/dashboard/knowledge/add/level-3">
+                          <Link href="/dashboard/knowledge/add/3">
                             <SidebarMenuButton className="text-slate-500">
                               Level 3: Planning
                             </SidebarMenuButton>
                           </Link>
-                          <Link href="/dashboard/knowledge/add/level-4">
+                          <Link href="/dashboard/knowledge/add/4">
                             <SidebarMenuButton className="text-slate-500">
                               Level 4: Management
                             </SidebarMenuButton>

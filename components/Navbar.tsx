@@ -127,9 +127,9 @@ export default function Navbar() {
                   <DropdownMenuSeparator />
                   <DropdownMenuItem
                     className="cursor-pointer text-destructive focus:text-destructive"
-                    onClick={() => signOut({ callbackUrl: "/login" })}
+                    onClick={() => signOut({ callbackUrl: "/login" })}  
                   >
-                    <LogOutIcon className="h-4 w-4 mr-2" />
+                    <LogOutIcon className="h-4 w-4 mr-2 text-red-500" />
                     <span>Logout</span>
                   </DropdownMenuItem>
                 </DropdownMenuContent>

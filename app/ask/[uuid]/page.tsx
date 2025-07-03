@@ -1,6 +1,5 @@
 "use client";
 
-import Image from "next/image";
 import React, { useState, useRef, useEffect, useCallback } from "react";
 import { Send } from "lucide-react";
 import { ImSpinner10 } from "react-icons/im";
@@ -15,71 +14,37 @@ import {
   subscribeToChatHistory,
   getChatHistory,
 } from "@/lib/firebase/chat-history";
+
+interface ExtendedChatMessage {
+  role: string;
+  content: string;
+  timestamp: number;
+  sources?: any[];
+}
+
+interface ExtendedChatHistory extends Omit<ChatHistory, "messages"> {
+  messages: ExtendedChatMessage[];
+}
 import { toast } from "react-hot-toast";
+import Link from "next/link";
+
+interface Source {
+  filename: string;
+  document_id: string;
+  file_path: string;
+}
 
 interface Message {
   role: "user" | "assistant";
   response: string;
   timestamp: string;
+  sources?: Source[];
 }
 
 export default function ChatInterface() {
   const { uuid } = useParams();
   const [loading, setLoading] = useState(false);
-  const [messages, setMessages] = useState<Message[]>([
-    {
-      role: "assistant",
-      response: `# Judul Utama
-
-Lorem ipsum dolor sit amet, consectetur adipiscing elit. **Suspendisse** nec justo vel odio dictum ultrices. *Curabitur* non urna id sem porta cursus.
-
-## Subjudul Kedua
-
-- List item pertama
-- List item kedua
-- List item ketiga
-
-### Subjudul Ketiga
-
-1. Langkah pertama
-2. Langkah kedua
-3. Langkah ketiga
-
-#### Kode Program
-
-\`\`\`javascript
-function helloWorld() {
-  console.log("Hello, Tailwind Typography!");
-}
-\`\`\`
-
-> “Ini adalah contoh kutipan. Cocok untuk menampilkan testimoni atau referensi.”
-
----
-
-## Tabel Data
-
-| Nama    | Umur | Pekerjaan    |
-|---------|------|--------------|
-| Andi    | 25   | Developer    |
-| Budi    | 30   | Designer     |
-| Charlie | 28   | Product Lead |
-
----
-
-## Gambar
-
-![Gambar Dummy](https://dummyjson.com/icon/emilys/128)
-
----
-
-## Link
-
-Kunjungi [Tailwind Typography](https://tailwindcss.com/docs/typography-plugin) untuk dokumentasi lengkap.
-`,
-      timestamp: new Date().toISOString(),
-    },
-  ]);
+  const [messages, setMessages] = useState<Message[]>([]);
 
   const [input, setInput] = useState("");
   const [pendingMessage, setPendingMessage] = useState<Message | null>(null);
@@ -90,16 +55,16 @@ Kunjungi [Tailwind Typography](https://tailwindcss.com/docs/typography-plugin) u
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
-  // Subscribe to real-time updates
   useEffect(() => {
     if (uuid && !isSubscribed) {
       const unsubscribe = subscribeToChatHistory(uuid as string, (history) => {
         if (history) {
           setMessages(
-            history.messages.map((msg) => ({
+            history.messages.map((msg: any) => ({
               role: msg.role === "user" ? "user" : "assistant",
               response: msg.content,
               timestamp: new Date(msg.timestamp).toISOString(),
+              sources: msg.sources || [],
             }))
           );
         }
@@ -115,10 +80,11 @@ Kunjungi [Tailwind Typography](https://tailwindcss.com/docs/typography-plugin) u
       const history = await getChatHistory(uuid as string);
       if (history && Array.isArray(history.messages)) {
         setMessages(
-          history.messages.map((msg) => ({
+          history.messages.map((msg: any) => ({
             role: msg.role === "user" ? "user" : "assistant",
             response: msg.content,
             timestamp: new Date(msg.timestamp).toISOString(),
+            sources: msg.sources || [],
           }))
         );
       }
@@ -142,40 +108,36 @@ Kunjungi [Tailwind Typography](https://tailwindcss.com/docs/typography-plugin) u
         timestamp: new Date().toISOString(),
       };
 
-      // Optimistic update
       setMessages((prev) => [...prev, userMessage]);
       setPendingMessage(pendingAssistantMessage);
       try {
         const response = await fetch(
-          `${process.env.NEXT_PUBLIC_API_URL}/api/v1/chat`,
+          `${process.env.NEXT_PUBLIC_API_URL}/chat/${uuid}`,
           {
             method: "POST",
             headers: {
               "Content-Type": "application/json",
             },
             body: JSON.stringify({
-              input: message,
+              question: message,
               category: session?.user?.category,
-              user_id: session?.user?.id,
-              thread_id: uuid,
             }),
           }
         );
         const data = await response.json();
-
         const assistantMessage: Message = {
           role: "assistant",
-          response: data.response || "",
+          response: data.answer || "",
           timestamp: new Date().toISOString(),
+          sources: data.sources || [],
         };
 
         setPendingMessage(null);
         setMessages((prev) => [...prev, assistantMessage]);
 
-        // Store chat history
         if (session?.user?.id) {
           try {
-            const chatHistory: ChatHistory = {
+            const chatHistory: ExtendedChatHistory = {
               userId: session.user.id,
               threadId: uuid as string,
               messages: [...messages, userMessage, assistantMessage].map(
@@ -183,10 +145,11 @@ Kunjungi [Tailwind Typography](https://tailwindcss.com/docs/typography-plugin) u
                   role: msg.role,
                   content: msg.response,
                   timestamp: new Date(msg.timestamp).getTime(),
+                  sources: msg.sources || [],
                 })
               ),
             };
-            await storeChatHistory(chatHistory);
+            await storeChatHistory(chatHistory as any);
           } catch (error) {
             console.error("[ChatHistory] Failed to store chat history:", error);
             toast.error("Gagal menyimpan riwayat chat");
@@ -250,16 +213,6 @@ Kunjungi [Tailwind Typography](https://tailwindcss.com/docs/typography-plugin) u
                       : "bg-white text-black w-full"
                   }`}
                 >
-                  {message.role === "assistant" && (
-                    <span className="inline-block mr-2 align-middle">
-                      <Image
-                        src="/bejo.png"
-                        width={30}
-                        height={30}
-                        alt="Bejo"
-                      />
-                    </span>
-                  )}
                   <div
                     className={`${
                       message.role === "assistant"
@@ -270,16 +223,36 @@ Kunjungi [Tailwind Typography](https://tailwindcss.com/docs/typography-plugin) u
                     <Markdown remarkPlugins={[remarkGfm]}>
                       {message.response}
                     </Markdown>
+
                     {message.role === "assistant" && (
-                      <span className="block text-xs mt-2 text-start text-slate-400">
-                        {new Date(message.timestamp).toLocaleString("id-ID", {
-                          hour: "2-digit",
-                          minute: "2-digit",
-                          day: "2-digit",
-                          month: "2-digit",
-                          year: "numeric",
-                        })}
-                      </span>
+                      <>
+                        {message.sources && message.sources.length > 0 && (
+                          <div className="block text-xs mt-4 text-start text-slate-500">
+                            <div className="font-semibold mb-1">Sources:</div>
+                            <ul className="list-disc list-inside space-y-1">
+                              {message.sources.map((source, sourceIndex) => (
+                                <li key={sourceIndex} className="truncate">
+                                  <Link
+                                    href={`${process.env.NEXT_PUBLIC_API_URL}/${source.file_path}`}
+                                    target="_blank"
+                                  >
+                                    {source.filename}
+                                  </Link>
+                                </li>
+                              ))}
+                            </ul>
+                          </div>
+                        )}
+                        <span className="block text-xs mt-2 text-start text-slate-500">
+                          {new Date(message.timestamp).toLocaleString("id-ID", {
+                            hour: "2-digit",
+                            minute: "2-digit",
+                            day: "2-digit",
+                            month: "2-digit",
+                            year: "numeric",
+                          })}
+                        </span>
+                      </>
                     )}
                   </div>
                 </div>
@@ -289,9 +262,6 @@ Kunjungi [Tailwind Typography](https://tailwindcss.com/docs/typography-plugin) u
             {pendingMessage && (
               <div className="flex justify-start">
                 <div className="px-6 py-3 rounded-xl text-black w-full">
-                  <span className="inline-block mr-2 align-middle">
-                    <Image src="/bejo.png" width={30} height={30} alt="Bejo" />
-                  </span>
                   <span className="align-middle flex items-center">
                     <span className="ml-2 animate-pulse block text-slate-300 text-sm">
                       loading...
@@ -305,7 +275,6 @@ Kunjungi [Tailwind Typography](https://tailwindcss.com/docs/typography-plugin) u
           </div>
         </div>
 
-        {/* Input area */}
         <div className="px-4 py-6 w-full flex justify-center">
           <div className="flex items-center w-full max-w-4xl space-x-3 dark:invert">
             <input

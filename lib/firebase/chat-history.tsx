@@ -5,11 +5,6 @@ import {
   setDoc,
   writeBatch,
   onSnapshot,
-  query,
-  collection,
-  orderBy,
-  limit,
-  startAfter,
 } from "firebase/firestore";
 import { db } from "./app";
 

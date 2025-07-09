@@ -120,7 +120,7 @@ export default function ChatInterface() {
             },
             body: JSON.stringify({
               question: message,
-              category: session?.user?.category,
+              category: localStorage.getItem("knowledgeCategory") || "level-1",
             }),
           }
         );

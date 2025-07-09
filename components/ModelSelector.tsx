@@ -1,4 +1,3 @@
-// File: components/ModelSelector.tsx
 import React from "react";
 import { FaGoogle } from "react-icons/fa";
 import { RiOpenaiFill } from "react-icons/ri";

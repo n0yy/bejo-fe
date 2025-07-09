@@ -4,12 +4,14 @@ import { useState } from "react";
 import { ArrowBigUpDash, Loader2 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import ModelSelector from "./ModelSelector";
-import DatabaseConnector from "./DatabaseConnector";
+// import DatabaseConnector from "./DatabaseConnector";
 import { useSession } from "next-auth/react";
+import CategorySelector from "./CategorySelector";
 
 export default function PromptInput() {
   const [prompt, setPrompt] = useState("");
   const [model, setModel] = useState("gpt-4o");
+  const [knowledgeCategory, setKnowledgeCategory] = useState("1");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const router = useRouter();
 
@@ -19,14 +21,12 @@ export default function PromptInput() {
     e.preventDefault();
     setIsSubmitting(true);
 
-    // Cek apakah ada pesan di localStorage
     const existingMessage = localStorage.getItem("initialMessage");
 
     if (existingMessage) {
       localStorage.removeItem("initialMessage");
     }
 
-    console.log("[PromptInput] Creating new thread...");
     const response = await fetch(`/api/ask`, {
       method: "POST",
       headers: {
@@ -40,6 +40,7 @@ export default function PromptInput() {
     if (threadId) {
       localStorage.setItem("initialMessage", prompt);
       localStorage.setItem("threadId", threadId);
+      localStorage.setItem("knowledgeCategory", knowledgeCategory);
       router.push(`ask/${threadId}`);
     } else {
       console.error("[PromptInput] Failed to create thread");
@@ -72,9 +73,13 @@ export default function PromptInput() {
           />
 
           <div className="flex items-center justify-between p-2 border-t border-input">
-            <div className="flex items-center space-x-0 md:space-x-2 ">
+            <div className="flex items-center space-x-0 md:-space-x-2">
               <ModelSelector value={model} onChange={setModel} />
               {/* <DatabaseConnector /> */}
+              <CategorySelector
+                value={knowledgeCategory}
+                onChange={setKnowledgeCategory}
+              />
             </div>
 
             <button

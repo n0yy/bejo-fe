@@ -29,15 +29,7 @@ import { useRouter } from "next/navigation";
 
 // Schema untuk form registrasi
 const registerFormSchema = z.object({
-  username: z
-    .string()
-    .min(2, {
-      message: "Username harus minimal 2 karakter",
-    })
-    .max(12, {
-      message: "Username tidak boleh lebih dari 12 karakter",
-    }),
-  email: z.string().email(),
+  email: z.string().email("Format email tidak valid"),
   name: z
     .string()
     .min(2, {
@@ -71,10 +63,9 @@ export default function RegisterPage() {
   const form = useForm<RegisterFormValues>({
     resolver: zodResolver(registerFormSchema),
     defaultValues: {
-      username: "",
       email: "",
       name: "",
-      division: undefined as any,
+      division: undefined,
       password: "",
     },
   });
@@ -88,28 +79,31 @@ export default function RegisterPage() {
     try {
       setIsLoading(true);
 
-      // Pertama lakukan fetch
       const response = await fetch("/api/auth/register", {
         method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
         body: JSON.stringify(values),
       });
 
       const data = await response.json();
 
-      // Gunakan toast secara manual berdasarkan hasil respons
       if (!response.ok) {
-        toast.error(data.message || "Something went wrong...");
+        toast.error(data.message || data.error || "Terjadi kesalahan");
         return;
       }
 
-      toast.success(data.message || "Register successful!");
+      toast.success(data.message || "Registrasi berhasil!");
       form.reset();
+      setChecked(false);
 
       setTimeout(() => {
         router.push("/login");
-      }, 3000);
+      }, 2000);
     } catch (error: any) {
-      toast.error(error.message || "Unexpected error occurred");
+      toast.error("Terjadi kesalahan yang tidak terduga");
+      console.error("Registration error:", error);
     } finally {
       setIsLoading(false);
     }
@@ -142,22 +136,9 @@ export default function RegisterPage() {
             name="name"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Name</FormLabel>
+                <FormLabel>Nama</FormLabel>
                 <FormControl>
                   <Input placeholder="Bejo Doe" {...field} />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-          <FormField
-            control={form.control}
-            name="username"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Username</FormLabel>
-                <FormControl>
-                  <Input placeholder="bedo72" {...field} />
                 </FormControl>
                 <FormMessage />
               </FormItem>
@@ -168,14 +149,14 @@ export default function RegisterPage() {
             name="division"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Division</FormLabel>
+                <FormLabel>Divisi</FormLabel>
                 <Select
                   onValueChange={field.onChange}
                   defaultValue={field.value}
                 >
                   <FormControl>
                     <SelectTrigger>
-                      <SelectValue placeholder="Select a division" />
+                      <SelectValue placeholder="Pilih divisi" />
                     </SelectTrigger>
                   </FormControl>
                   <SelectContent>
@@ -217,15 +198,13 @@ export default function RegisterPage() {
               htmlFor="terms"
               className="text-sm font-medium text-slate-600 leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
             >
-              I ensure that all the data is valid.
+              Saya memastikan bahwa semua data yang dimasukkan valid.
             </label>
           </div>
           <Button
             type="submit"
-            className={`w-full hover:cursor-pointer ${
-              isFormValid ? "" : "cursor-not-allowed"
-            }`}
-            disabled={!isFormValid && !isLoading}
+            className="w-full"
+            disabled={!isFormValid || isLoading}
           >
             {isLoading ? <FaSpinner className="animate-spin" /> : "Register"}
           </Button>
@@ -235,7 +214,7 @@ export default function RegisterPage() {
             href="/login"
             className="underline text-sm text-slate-400 hover:text-slate-500"
           >
-            Already have an account?
+            Sudah punya akun?
           </Link>
         </div>
       </Form>

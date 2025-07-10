@@ -18,7 +18,7 @@ export default function DashboardContent() {
   useEffect(() => {
     const fetchUsers = async () => {
       try {
-        const res = await fetch("/api/user/get-all");
+        const res = await fetch("/api/users/get-all");
         if (!res.ok) throw new Error("Failed to fetch users");
         const data = await res.json();
         setUsers(data);

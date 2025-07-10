@@ -4,7 +4,6 @@ import { useState } from "react";
 import { ArrowBigUpDash, Loader2 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import ModelSelector from "./ModelSelector";
-// import DatabaseConnector from "./DatabaseConnector";
 import { useSession } from "next-auth/react";
 import CategorySelector from "./CategorySelector";
 
@@ -15,7 +14,7 @@ export default function PromptInput() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const router = useRouter();
 
-  const { data: session, status } = useSession();
+  const { data: session } = useSession();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -75,7 +74,6 @@ export default function PromptInput() {
           <div className="flex items-center justify-between p-2 border-t border-input">
             <div className="flex items-center space-x-0 md:-space-x-2">
               <ModelSelector value={model} onChange={setModel} />
-              {/* <DatabaseConnector /> */}
               <CategorySelector
                 value={knowledgeCategory}
                 onChange={setKnowledgeCategory}

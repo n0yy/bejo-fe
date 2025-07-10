@@ -1,29 +1,43 @@
 import { NextResponse } from "next/server";
-import { db } from "@/lib/firebase/app";
-import { collection, addDoc, serverTimestamp } from "firebase/firestore";
+import { serverTimestamp } from "firebase/firestore";
 import { hash } from "bcryptjs";
-import { getUserByEmail } from "@/lib/firebase/user";
+import { createUser, getUserByEmail } from "@/lib/db/actions";
 
 export async function POST(request: Request) {
   try {
     const data = await request.json();
 
-    try {
-      const result = await getUserByEmail(data.email);
+    // Validasi input dasar
+    if (!data.email || !data.name || !data.password || !data.division) {
+      return NextResponse.json(
+        {
+          status: 400,
+          message: "Semua field wajib diisi",
+        },
+        { status: 400 }
+      );
+    }
 
-      if (result) {
+    // Cek apakah email sudah ada
+    try {
+      const existingUser = await getUserByEmail(data.email);
+
+      if (existingUser) {
         return NextResponse.json(
           {
             status: 409,
-            message: "Email already exists",
+            message: "Email sudah terdaftar",
           },
           { status: 409 }
         );
       }
     } catch (error) {
-      console.error("Error saat memeriksa user yang sudah ada:", error);
+      console.error("Error saat memeriksa email yang sudah ada:", error);
       return NextResponse.json(
-        { error: "Something went wrong when checking data" },
+        {
+          status: 500,
+          message: "Terjadi kesalahan saat memeriksa data",
+        },
         { status: 500 }
       );
     }
@@ -35,37 +49,42 @@ export async function POST(request: Request) {
     const newUser = {
       email: data.email,
       name: data.name,
-      username: data.username,
       password: hashedPassword,
-      division: data.division || "",
-      status: "pending", // Default
-      role: "user", // Default
+      division: data.division,
+      status: "pending",
+      role: "user",
+      category: "1",
       createdAt: serverTimestamp(),
     };
 
-    // Simpan user baru ke Firestore
     try {
-      const usersRef = collection(db, "users");
-      await addDoc(usersRef, newUser);
+      await createUser(newUser);
 
       return NextResponse.json(
         {
           success: true,
-          message: "Register is succesfully, wait to approve by admin",
+          message:
+            "Registrasi berhasil! Silakan tunggu persetujuan dari admin.",
         },
         { status: 201 }
       );
     } catch (saveError) {
       console.error("Error saat menyimpan user baru:", saveError);
       return NextResponse.json(
-        { error: "Gagal menyimpan data pengguna" },
+        {
+          status: 500,
+          message: "Gagal menyimpan data pengguna",
+        },
         { status: 500 }
       );
     }
   } catch (error) {
     console.error("Error pada endpoint register:", error);
     return NextResponse.json(
-      { error: "Terjadi kesalahan saat memproses permintaan" },
+      {
+        status: 500,
+        message: "Terjadi kesalahan saat memproses permintaan",
+      },
       { status: 500 }
     );
   }

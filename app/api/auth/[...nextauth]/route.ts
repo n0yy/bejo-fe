@@ -2,7 +2,7 @@ import NextAuth from "next-auth";
 
 import type { NextAuthOptions } from "next-auth";
 import CredentialsProvider from "next-auth/providers/credentials";
-import { getUserByEmail } from "@/lib/firebase/user";
+import { getUserByEmail } from "@/lib/db/actions";
 import { compare } from "bcryptjs";
 
 interface FirebaseUser {
@@ -38,9 +38,7 @@ const authOptions: NextAuthOptions = {
             throw new Error("Missing credentials");
           }
 
-          const user = (await getUserByEmail(
-            credentials.email
-          )) as FirebaseUser;
+          const user = await getUserByEmail(credentials.email);
           if (!user) {
             throw new Error("User not found");
           }
@@ -87,7 +85,7 @@ const authOptions: NextAuthOptions = {
   ],
   session: {
     strategy: "jwt",
-    maxAge: 30 * 24 * 60 * 60, // 30 days
+    maxAge: 30 * 24 * 60 * 60,
   },
   callbacks: {
     async jwt({ token, user }) {

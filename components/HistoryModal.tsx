@@ -79,7 +79,7 @@ export default function HistoryModal() {
   };
 
   return (
-    <div className="z-50 bg-slate-50 min-w-7xl max-h-8/12 p-7 rounded-lg shadow-lg inset-x-0">
+    <div className="z-50 min-w-7xl max-h-8/12 p-7 rounded-lg shadow-lg inset-x-0 bg-secondary">
       <header className="">
         <h1 className="text-xl mb-3 font-semibold">Riwayat Chat</h1>
         <div className="flex items-center gap-7 mb-7">
@@ -120,10 +120,10 @@ export default function HistoryModal() {
                 >
                   <div className="flex justify-between items-start">
                     <div className="flex-1 min-w-0">
-                      <p className="text-sm text-slate-900 truncate">
+                      <p className="text-sm truncate">
                         {getPreview(chat.lastMessage)}
                       </p>
-                      <p className="text-xs text-slate-500 mt-1">
+                      <p className="text-xs mt-1">
                         {format(chat.timestamp, "d MMMM yyyy, HH:mm", {
                           locale: id,
                         })}

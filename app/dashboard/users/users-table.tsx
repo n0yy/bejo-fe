@@ -68,14 +68,52 @@ export function UsersTable({ initialData }: UsersTableProps) {
   const [changedItems, setChangedItems] = useState<Set<string>>(new Set());
   const { data: session } = useSession();
 
+  // Filter data berdasarkan kategori user yang login
+  const filteredData = useMemo(() => {
+    if (!session?.user?.category) return [];
+
+    const userCategory = Number(session.user.category);
+
+    // Level 4 (Management) bisa lihat semua user
+    if (userCategory === 4) {
+      return initialData;
+    }
+
+    // Level 3 (Planning) bisa lihat user kategori 1, 2, 3
+    if (userCategory === 3) {
+      return initialData.filter((user) => {
+        const targetCategory = Number(user.category);
+        return targetCategory <= 3;
+      });
+    }
+
+    // Level 2 (Supervisory) bisa lihat user kategori 1, 2
+    if (userCategory === 2) {
+      return initialData.filter((user) => {
+        const targetCategory = Number(user.category);
+        return targetCategory <= 2;
+      });
+    }
+
+    // Level 1 (Control & Field) hanya bisa lihat user kategori 1
+    if (userCategory === 1) {
+      return initialData.filter((user) => {
+        const targetCategory = Number(user.category);
+        return targetCategory === 1;
+      });
+    }
+
+    return [];
+  }, [initialData, session?.user?.category]);
+
   useEffect(() => {
-    setTableData(initialData);
+    setTableData(filteredData);
     setChangedItems(new Set());
-  }, [initialData]);
+  }, [filteredData]);
 
   const handleFieldChange = useCallback(
     (userId: string, field: keyof User, newValue: any) => {
-      const originalUser = initialData.find((user) => user.id === userId);
+      const originalUser = filteredData.find((user) => user.id === userId);
       if (!originalUser) return;
 
       setTableData((prev) =>
@@ -106,7 +144,7 @@ export function UsersTable({ initialData }: UsersTableProps) {
         return newSet;
       });
     },
-    [initialData, tableData]
+    [filteredData, tableData]
   );
 
   const canEditRole = useMemo(() => {
@@ -114,7 +152,6 @@ export function UsersTable({ initialData }: UsersTableProps) {
     return session.user.role === "admin" && session.user.category === "4";
   }, [session?.user]);
 
-  // Fungsi untuk update via API route
   const handleSave = useCallback(async () => {
     if (changedItems.size === 0) return;
 
@@ -130,7 +167,6 @@ export function UsersTable({ initialData }: UsersTableProps) {
         };
       });
 
-      // Panggil API route (bukan server action langsung)
       const response = await fetch("/api/users/update", {
         method: "POST",
         headers: {
@@ -266,6 +302,19 @@ export function UsersTable({ initialData }: UsersTableProps) {
         header: "Level Kategori",
         cell: ({ row }) => {
           const { id: userId, category } = row.original;
+          const userCategory = Number(session?.user?.category);
+
+          // Hide dropdown untuk user kategori 1
+          if (userCategory === 1) {
+            const categoryOption = CATEGORY_OPTIONS.find(
+              (opt) => opt.value === category
+            );
+            return (
+              <span className="text-sm sm:text-base">
+                {categoryOption?.label || category}
+              </span>
+            );
+          }
 
           return (
             <Select
@@ -278,7 +327,19 @@ export function UsersTable({ initialData }: UsersTableProps) {
                 <SelectValue placeholder="Pilih kategori" />
               </SelectTrigger>
               <SelectContent>
-                {CATEGORY_OPTIONS.map((option) => (
+                {CATEGORY_OPTIONS.filter((option) => {
+                  if (!userCategory) return false;
+
+                  if (userCategory === 4) return true;
+
+                  if (userCategory === 3) return Number(option.value) <= 3;
+
+                  if (userCategory === 2) return Number(option.value) <= 2;
+
+                  if (userCategory === 1) return Number(option.value) === 1;
+
+                  return false;
+                }).map((option) => (
                   <SelectItem key={option.value} value={option.value}>
                     {option.label}
                   </SelectItem>
@@ -289,7 +350,7 @@ export function UsersTable({ initialData }: UsersTableProps) {
         },
       },
     ],
-    [handleFieldChange, canEditRole]
+    [handleFieldChange, canEditRole, session?.user?.category]
   );
 
   const table = useReactTable({
@@ -303,9 +364,11 @@ export function UsersTable({ initialData }: UsersTableProps) {
       {process.env.NODE_ENV === "development" && (
         <div className="text-xs text-gray-500 p-2 bg-gray-50 rounded">
           Debug: Role={session?.user?.role}, Category=
-          {session?.user?.category}, CanEditRole={canEditRole}
+          {session?.user?.category}, CanEditRole={canEditRole}, Showing{" "}
+          {tableData.length} dari {initialData.length} total users
         </div>
       )}
+
       <div className="w-full overflow-x-auto">
         <Table>
           <TableHeader>
@@ -345,7 +408,7 @@ export function UsersTable({ initialData }: UsersTableProps) {
                   colSpan={columns.length}
                   className="h-24 text-center text-sm"
                 >
-                  Tidak ada data.
+                  Tidak ada data yang dapat diakses.
                 </TableCell>
               </TableRow>
             )}

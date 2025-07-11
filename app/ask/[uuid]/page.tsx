@@ -215,9 +215,7 @@ export default function ChatInterface() {
                 >
                   <div
                     className={`${
-                      message.role === "assistant"
-                        ? "prose max-w-none dark:prose-invert"
-                        : ""
+                      message.role === "assistant" ? "prose max-w-none" : ""
                     }`}
                   >
                     <Markdown remarkPlugins={[remarkGfm]}>
@@ -280,7 +278,7 @@ export default function ChatInterface() {
             <input
               ref={inputRef}
               type="text"
-              className="flex-1 px-4 py-2 rounded-md border border-slate-300 text-slate-800"
+              className="flex-1 px-4 py-2 rounded-md border border-slate-400"
               placeholder="Type your message..."
               value={input}
               onChange={(e) => setInput(e.target.value)}

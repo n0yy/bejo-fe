@@ -5,25 +5,6 @@ import CredentialsProvider from "next-auth/providers/credentials";
 import { getUserByEmail } from "@/lib/db/actions";
 import { compare } from "bcryptjs";
 
-interface FirebaseUser {
-  id: string;
-  email: string;
-  name: string;
-  division: string;
-  role: string;
-  status: string;
-  password: string;
-  category?: string;
-  dbCreds?: {
-    type: string;
-    host: string;
-    port: string;
-    username: string;
-    password: string;
-    dbname: string;
-  };
-}
-
 const authOptions: NextAuthOptions = {
   providers: [
     CredentialsProvider({

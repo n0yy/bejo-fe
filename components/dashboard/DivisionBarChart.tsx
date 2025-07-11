@@ -84,7 +84,7 @@ export default function DivisionBarChart({
               <Bar
                 dataKey="count"
                 layout="vertical"
-                fill="var(--color-count)"
+                fill="var(--color-chart-1)"
                 radius={4}
                 barSize={50}
               >

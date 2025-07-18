@@ -5,7 +5,8 @@ const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
 });
 
-const tableName = "tbl_mst_users_bejo";
+const tableUserName = "tbl_mst_users_bejo";
+const tableHistoryName = "tbl_trx_chat_history_bejo";
 
 interface User {
   name: string;
@@ -17,24 +18,106 @@ interface User {
   role?: string;
 }
 
+interface ChatHistory {
+  userId: string;
+  threadId: string;
+  messages: {
+    role: string;
+    content: string;
+    timestamp: number;
+  }[];
+}
+
+export async function getChatHistoryByThreadId(threadId: string) {
+  try {
+    const result = await pool.query(
+      `SELECT * FROM ${tableHistoryName} WHERE thread_id = $1 ORDER BY created_at ASC`,
+      [threadId]
+    );
+    return result.rows;
+  } catch (error) {
+    console.error("Error getting chat hustory by Thread ID: ", error);
+    throw error;
+  }
+}
+
+export async function getChatHistoryByUserId(userId: string) {
+  try {
+    const result = await pool.query(
+      `SELECT * FROM ${tableHistoryName} WHERE user_id = $1 ORDER BY created_at DESC`,
+      [userId]
+    );
+    return result.rows;
+  } catch (error) {
+    console.error("Error getting chat hustory by User ID: ", error);
+    throw error;
+  }
+}
+
+export async function insertChatHistory(chatHistory: ChatHistory) {
+  try {
+    const existingThread = await pool.query(
+      `SELECT * FROM ${tableHistoryName} WHERE thread_id = $1`,
+      [chatHistory.threadId]
+    );
+
+    if (existingThread.rows.length > 0) {
+      const result = await pool.query(
+        `UPDATE ${tableHistoryName} SET messages = $1 WHERE thread_id = $2 RETURNING *}`,
+        [JSON.stringify(chatHistory.messages), chatHistory.threadId]
+      );
+      return result.rows[0];
+    } else {
+      const result = await pool.query(
+        `INSERT INTO ${tableHistoryName} (id, thread_id, user_id, messages, created_at) VALUES (gen_random_uuid(), $1, $2, $3, NOW()) RETURNING *`,
+        [
+          chatHistory.threadId,
+          chatHistory.userId,
+          JSON.stringify(chatHistory.messages),
+        ]
+      );
+      return result.rows[0];
+    }
+  } catch (error) {
+    await pool.query(`ROLLBACK`);
+    console.error("Error inserting chat history: ", error);
+    throw error;
+  } finally {
+    await pool.query(`COMMIT`);
+  }
+}
+
+export async function deleteChatHistory(threadId: string) {
+  try {
+    const result = await pool.query(
+      `DELETE FROM ${tableHistoryName} WHERE thread_id = $1`,
+      [threadId]
+    );
+    return result;
+  } catch (error) {
+    console.error("Error deleting chat history: ", error);
+    throw error;
+  }
+}
+
 export async function createUser(user: User) {
   const id = uuid();
   const { name, email, password, division, status, role, category } = user;
   const result = await pool.query(
-    `INSERT INTO ${tableName} (id, name, email, password, division, status, role, category) VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING *`,
+    `INSERT INTO ${tableUserName} (id, name, email, password, division, status, role, category) VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING *`,
     [id, name, email, password, division, status, role, category]
   );
   return result;
 }
 
 export async function getAllUsers() {
-  const result = await pool.query(`SELECT * FROM ${tableName}`);
+  const result = await pool.query(`SELECT * FROM ${tableUserName}`);
   return result.rows;
 }
 
 export async function getUserByEmail(email: string) {
   const result = await pool.query(
-    `SELECT * FROM ${tableName} WHERE email = $1`,
+    `SELECT * FROM ${tableUserName} WHERE email = $1`,
     [email]
   );
   return result.rows[0];
@@ -96,7 +179,7 @@ export async function updateUserStatuses(
       updateValues.push(userId);
 
       const updateQuery = `
-        UPDATE ${tableName} 
+        UPDATE ${tableUserName} 
         SET ${updateFields.join(", ")} 
         WHERE id = $${paramIndex}
       `;

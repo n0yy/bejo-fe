@@ -8,23 +8,6 @@ import Markdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import Navbar from "@/components/Navbar";
 import { useSession } from "next-auth/react";
-import {
-  ChatHistory,
-  storeChatHistory,
-  subscribeToChatHistory,
-  getChatHistory,
-} from "@/lib/firebase/chat-history";
-
-interface ExtendedChatMessage {
-  role: string;
-  content: string;
-  timestamp: number;
-  sources?: any[];
-}
-
-interface ExtendedChatHistory extends Omit<ChatHistory, "messages"> {
-  messages: ExtendedChatMessage[];
-}
 import { toast } from "react-hot-toast";
 import Link from "next/link";
 
@@ -45,56 +28,75 @@ export default function ChatInterface() {
   const { uuid } = useParams();
   const [loading, setLoading] = useState(false);
   const [messages, setMessages] = useState<Message[]>([]);
-
   const [input, setInput] = useState("");
   const [pendingMessage, setPendingMessage] = useState<Message | null>(null);
-  const [isSubscribed, setIsSubscribed] = useState(false);
 
-  const { data: session, status } = useSession();
-
+  const { data: session } = useSession();
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
-  useEffect(() => {
-    if (uuid && !isSubscribed) {
-      const unsubscribe = subscribeToChatHistory(uuid as string, (history) => {
-        if (history) {
-          setMessages(
-            history.messages.map((msg: any) => ({
-              role: msg.role === "user" ? "user" : "assistant",
-              response: msg.content,
-              timestamp: new Date(msg.timestamp).toISOString(),
-              sources: msg.sources || [],
-            }))
-          );
-        }
-      });
-      setIsSubscribed(true);
-      return () => unsubscribe();
-    }
-  }, [uuid, isSubscribed]);
+  // Load chat history dari database
+  const loadChatHistory = useCallback(async () => {
+    if (!uuid) return;
 
-  useEffect(() => {
-    const fetchHistory = async () => {
-      if (!uuid) return;
-      const history = await getChatHistory(uuid as string);
-      if (history && Array.isArray(history.messages)) {
-        setMessages(
-          history.messages.map((msg: any) => ({
-            role: msg.role === "user" ? "user" : "assistant",
-            response: msg.content,
-            timestamp: new Date(msg.timestamp).toISOString(),
-            sources: msg.sources || [],
-          }))
-        );
+    try {
+      const response = await fetch(`/api/history?threadId=${uuid}`);
+      const data = await response.json();
+
+      if (data.success && data.histories.length > 0) {
+        const historyMessages = data.histories[0].messages.map((msg: any) => ({
+          role: msg.role,
+          response: msg.content,
+          timestamp: new Date(msg.timestamp).toISOString(),
+          sources: msg.sources || [],
+        }));
+        setMessages(historyMessages);
       }
-    };
-    fetchHistory();
+    } catch (error) {
+      console.error("Error loading chat history:", error);
+    }
   }, [uuid]);
+
+  // Save chat history ke database
+  const saveChatHistory = useCallback(
+    async (newMessages: Message[]) => {
+      if (!session?.user?.id || !uuid) return;
+
+      try {
+        const chatData = {
+          userId: session.user.id,
+          threadId: uuid as string,
+          messages: newMessages.map((msg) => ({
+            role: msg.role,
+            content: msg.response,
+            timestamp: new Date(msg.timestamp).getTime(),
+            sources: msg.sources || [],
+          })),
+        };
+
+        const response = await fetch("/api/history", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(chatData),
+        });
+
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
+      } catch (error) {
+        console.error("Error saving chat history:", error);
+        toast.error("Gagal menyimpan riwayat chat");
+      }
+    },
+    [session?.user?.id, uuid]
+  );
 
   const getResponse = useCallback(
     async (message: string) => {
+      if (!message.trim() || loading) return;
+
       setLoading(true);
+      setInput("");
 
       const userMessage: Message = {
         role: "user",
@@ -110,20 +112,20 @@ export default function ChatInterface() {
 
       setMessages((prev) => [...prev, userMessage]);
       setPendingMessage(pendingAssistantMessage);
+
       try {
         const response = await fetch(
           `${process.env.NEXT_PUBLIC_API_URL}/chat/${uuid}`,
           {
             method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-            },
+            headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
               question: message,
-              category: localStorage.getItem("knowledgeCategory") || "level-1",
+              category: localStorage.getItem("knowledgeCategory") || "1",
             }),
           }
         );
+
         const data = await response.json();
         const assistantMessage: Message = {
           role: "assistant",
@@ -133,62 +135,41 @@ export default function ChatInterface() {
         };
 
         setPendingMessage(null);
-        setMessages((prev) => [...prev, assistantMessage]);
+        const updatedMessages = [...messages, userMessage, assistantMessage];
+        setMessages(updatedMessages);
 
-        if (session?.user?.id) {
-          try {
-            const chatHistory: ExtendedChatHistory = {
-              userId: session.user.id,
-              threadId: uuid as string,
-              messages: [...messages, userMessage, assistantMessage].map(
-                (msg) => ({
-                  role: msg.role,
-                  content: msg.response,
-                  timestamp: new Date(msg.timestamp).getTime(),
-                  sources: msg.sources || [],
-                })
-              ),
-            };
-            await storeChatHistory(chatHistory as any);
-          } catch (error) {
-            console.error("[ChatHistory] Failed to store chat history:", error);
-            toast.error("Gagal menyimpan riwayat chat");
-          }
-        }
+        await saveChatHistory(updatedMessages);
       } catch (error) {
-        console.error("[AskPage] Error getting response:", error);
+        console.error("Error getting response:", error);
         setPendingMessage(null);
         toast.error("Terjadi kesalahan saat mendapatkan respons");
       } finally {
         setLoading(false);
-        setInput("");
       }
     },
-    [uuid, session?.user?.id, session?.user?.category, messages]
+    [uuid, messages, saveChatHistory, loading]
   );
 
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [messages, pendingMessage, status]);
+    loadChatHistory();
+  }, [loadChatHistory]);
 
   useEffect(() => {
     const initialInput = localStorage.getItem("initialMessage");
-
     if (initialInput) {
       getResponse(initialInput);
       localStorage.removeItem("initialMessage");
     }
-  }, [uuid, status, getResponse]);
+  }, [getResponse]);
 
-  const handleSend = async (prompt: string) => {
-    if (!prompt.trim() || loading) return;
-    getResponse(prompt);
-  };
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [messages, pendingMessage]);
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === "Enter" && !e.shiftKey) {
       e.preventDefault();
-      handleSend(input);
+      getResponse(input);
     }
   };
 
@@ -196,8 +177,7 @@ export default function ChatInterface() {
     <>
       <Navbar />
       <div className="flex flex-col h-screen bg-white dark:invert">
-        {/* Chat area */}
-        <div className="flex-1 overflow-y-auto px-4 md:px-0 py-6 w-full flex justify-center  mt-20">
+        <div className="flex-1 overflow-y-auto px-4 md:px-0 py-6 w-full flex justify-center mt-20">
           <div className="w-full max-w-7xl space-y-4 pb-10">
             {messages.map((message, index) => (
               <div
@@ -214,9 +194,9 @@ export default function ChatInterface() {
                   }`}
                 >
                   <div
-                    className={`${
+                    className={
                       message.role === "assistant" ? "prose max-w-none" : ""
-                    }`}
+                    }
                   >
                     <Markdown remarkPlugins={[remarkGfm]}>
                       {message.response}
@@ -288,7 +268,7 @@ export default function ChatInterface() {
             <button
               className="p-2 w-10 h-10 rounded-md bg-slate-800 text-white hover:bg-slate-700 disabled:opacity-50 flex items-center justify-center"
               disabled={loading || !input.trim()}
-              onClick={() => handleSend(input)}
+              onClick={() => getResponse(input)}
             >
               {!loading ? (
                 <Send width={16} />

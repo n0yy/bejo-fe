@@ -2,8 +2,6 @@
 
 import { Search } from "lucide-react";
 import React, { useEffect, useState } from "react";
-import { collection, query, where, getDocs } from "firebase/firestore";
-import { db } from "@/lib/firebase/app";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import { format } from "date-fns";
@@ -16,9 +14,7 @@ interface ChatHistoryItem {
   messageCount: number;
 }
 
-// Helper untuk menghapus markdown dan link
 function getPreview(text: string, maxLength = 100) {
-  // Hapus markdown dan link
   let clean = text
     .replace(/\[(.*?)\]\((.*?)\)/g, "$1")
     .replace(/[*_~`>#-]/g, "")
@@ -42,24 +38,23 @@ export default function HistoryModal() {
       if (!session?.user?.id) return;
 
       try {
-        const chatHistoryRef = collection(db, "chatHistory");
-        const q = query(chatHistoryRef, where("userId", "==", session.user.id));
-
-        const querySnapshot = await getDocs(q);
-
-        const history = querySnapshot.docs.map((doc) => {
-          const data = doc.data();
-          const messages = data.messages || [];
+        const response = await fetch("/api/history?userId=" + session.user.id);
+        const data = await response.json();
+        const histories = data.histories.map((item: any) => {
+          const messages = item.messages || [];
+          const lastMessage =
+            messages.length > 0
+              ? messages[messages.length - 1].content
+              : "(tidak ada pesan)";
           return {
-            threadId: doc.id,
-            lastMessage:
-              messages[messages.length - 1]?.content || "No messages",
-            timestamp: messages[messages.length - 1]?.timestamp || Date.now(),
+            threadId: item.thread_id,
+            lastMessage,
+            timestamp: new Date(item.created_at).getTime(),
             messageCount: messages.length,
           };
         });
 
-        setChatHistory(history);
+        setChatHistory(histories);
       } catch (error) {
         console.error("Error fetching chat history:", error);
       } finally {
@@ -69,14 +64,11 @@ export default function HistoryModal() {
 
     fetchChatHistory();
   }, [session?.user?.id]);
-
-  const filteredHistory = chatHistory.filter((chat) =>
-    chat.lastMessage.toLowerCase().includes(searchQuery.toLowerCase())
-  );
-
   const handleChatSelect = (threadId: string) => {
     router.push(`/ask/${threadId}`);
   };
+
+  console.log(chatHistory);
 
   return (
     <div className="z-50 min-w-7xl max-h-8/12 p-7 rounded-lg shadow-lg inset-x-0 bg-secondary">
@@ -103,7 +95,7 @@ export default function HistoryModal() {
             <div className="flex justify-center items-center h-40">
               <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-slate-800"></div>
             </div>
-          ) : filteredHistory.length === 0 ? (
+          ) : chatHistory.length === 0 ? (
             <div className="text-center py-8 text-slate-500">
               {searchQuery
                 ? "Tidak ada riwayat chat yang ditemukan"
@@ -111,7 +103,7 @@ export default function HistoryModal() {
             </div>
           ) : (
             <ul className="space-y-3 cursor-pointer pr-7 max-h-96 overflow-y-scroll">
-              {filteredHistory.map((chat) => (
+              {chatHistory.map((chat) => (
                 <li
                   key={chat.threadId}
                   className="hover:bg-slate-200 rounded py-2 px-5 transition-colors"

@@ -9,7 +9,7 @@ import CategorySelector from "./CategorySelector";
 
 export default function PromptInput() {
   const [prompt, setPrompt] = useState("");
-  const [model, setModel] = useState("gpt-4o");
+  // const [model, setModel] = useState("gpt-4o");
   const [knowledgeCategory, setKnowledgeCategory] = useState("1");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const router = useRouter();
@@ -72,15 +72,15 @@ export default function PromptInput() {
           />
 
           <div className="flex items-center justify-between p-2 border-t border-input">
-            <div className="flex items-center space-x-0 md:-space-x-2">
-              <ModelSelector value={model} onChange={setModel} />
-              {Number(session?.user?.category) !== 1 && (
-                <CategorySelector
-                  value={knowledgeCategory}
-                  onChange={setKnowledgeCategory}
-                />
-              )}
-            </div>
+            {/* <div className="flex items-center space-x-0 md:-space-x-2"> */}
+            {/* <ModelSelector value={model} onChange={setModel} /> */}
+            {Number(session?.user?.category) !== 1 && (
+              <CategorySelector
+                value={knowledgeCategory}
+                onChange={setKnowledgeCategory}
+              />
+            )}
+            {/* </div> */}
 
             <button
               type="submit"

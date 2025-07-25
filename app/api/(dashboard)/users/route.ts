@@ -1,8 +1,12 @@
-// app/api/users/update/route.ts
 import { NextRequest, NextResponse } from "next/server";
-import { updateUserStatuses } from "@/lib/db/actions";
+import { getAllUsers, updateUserStatuses } from "@/lib/db/actions";
 
-export async function POST(request: NextRequest) {
+export async function GET() {
+  const users = await getAllUsers();
+  return NextResponse.json(users);
+}
+
+export async function PUT(request: NextRequest) {
   try {
     const { updates } = await request.json();
 

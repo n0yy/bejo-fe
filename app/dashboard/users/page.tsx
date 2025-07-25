@@ -1,7 +1,6 @@
 import DashboardHeader from "@/components/dashboard/DashboardHeader";
-import React from "react";
+import React, { Suspense } from "react";
 import { UsersTable } from "./users-table";
-import { getAllUsers } from "@/lib/db/actions";
 
 const breadcrumbs = [
   { label: "Home", href: "/" },
@@ -10,11 +9,16 @@ const breadcrumbs = [
 ];
 
 export default async function UserManagement() {
-  const data = await getAllUsers();
+  const response = await fetch(`${process.env.NEXTAUTH_URL}/api/users`, {
+    cache: "no-store",
+  });
+  const data = await response.json();
   return (
-    <div className="p-6 space-y-6">
-      <DashboardHeader title="User Management" breadcrumbs={breadcrumbs} />
-      <UsersTable initialData={data} />
-    </div>
+    <Suspense fallback={<div>Loading...</div>}>
+      <div className="p-6 space-y-6">
+        <DashboardHeader title="User Management" breadcrumbs={breadcrumbs} />
+        <UsersTable initialData={data} />
+      </div>
+    </Suspense>
   );
 }

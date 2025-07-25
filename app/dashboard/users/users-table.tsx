@@ -68,18 +68,15 @@ export function UsersTable({ initialData }: UsersTableProps) {
   const [changedItems, setChangedItems] = useState<Set<string>>(new Set());
   const { data: session } = useSession();
 
-  // Filter data berdasarkan kategori user yang login
   const filteredData = useMemo(() => {
     if (!session?.user?.category) return [];
 
     const userCategory = Number(session.user.category);
 
-    // Level 4 (Management) bisa lihat semua user
     if (userCategory === 4) {
       return initialData;
     }
 
-    // Level 3 (Planning) bisa lihat user kategori 1, 2, 3
     if (userCategory === 3) {
       return initialData.filter((user) => {
         const targetCategory = Number(user.category);
@@ -87,7 +84,6 @@ export function UsersTable({ initialData }: UsersTableProps) {
       });
     }
 
-    // Level 2 (Supervisory) bisa lihat user kategori 1, 2
     if (userCategory === 2) {
       return initialData.filter((user) => {
         const targetCategory = Number(user.category);
@@ -95,7 +91,6 @@ export function UsersTable({ initialData }: UsersTableProps) {
       });
     }
 
-    // Level 1 (Control & Field) hanya bisa lihat user kategori 1
     if (userCategory === 1) {
       return initialData.filter((user) => {
         const targetCategory = Number(user.category);
@@ -167,8 +162,8 @@ export function UsersTable({ initialData }: UsersTableProps) {
         };
       });
 
-      const response = await fetch("/api/users/update", {
-        method: "POST",
+      const response = await fetch("/api/users", {
+        method: "PUT",
         headers: {
           "Content-Type": "application/json",
         },
@@ -179,11 +174,9 @@ export function UsersTable({ initialData }: UsersTableProps) {
         throw new Error("Gagal update pengguna");
       }
 
-      const result = await response.json();
       toast.success(`Berhasil update ${updates.length} pengguna`);
       setChangedItems(new Set());
 
-      // Refresh data jika diperlukan
       window.location.reload();
     } catch (error) {
       console.error("Save error:", error);
